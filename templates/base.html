@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}机场车辆调度系统{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <a href="/" class="sidebar-brand">
+        <img src="{{ url_for('static', filename='icon.png') }}" alt="">
+        <span>调度系统</span>
+    </a>
+    <ul class="sidebar-nav">
+        <li>
+            <a href="/dashboard" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <span class="nav-icon">📊</span>
+                <span>调度看板</span>
+            </a>
+        </li>
+        <li>
+            <a href="/vehicles" class="{% if request.endpoint == 'vehicles' %}active{% endif %}">
+                <span class="nav-icon">🚛</span>
+                <span>车辆状态</span>
+            </a>
+        </li>
+    </ul>
+    <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()">
+            <span class="theme-toggle-label" id="themeLabel">深色</span>
+            <span class="toggle-track"></span>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</main>
+
+<script>
+(function() {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('themeLabel').textContent = '浅色';
+    }
+})();
+
+function toggleTheme() {
+    var html = document.documentElement;
+    var label = document.getElementById('themeLabel');
+    if (html.getAttribute('data-theme') === 'light') {
+        html.setAttribute('data-theme', 'dark');
+        label.textContent = '深色';
+        localStorage.setItem('theme', 'dark');
+    } else {
+        html.setAttribute('data-theme', 'light');
+        label.textContent = '浅色';
+        localStorage.setItem('theme', 'light');
+    }
+}
+</script>
+
+</body>
+</html>

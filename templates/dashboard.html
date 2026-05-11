@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}调度看板 — 机场车辆调度系统{% endblock %}
+{% block content %}
+
+{% set flight_count = flights | length %}
+{% set task_count = tasks | length %}
+{% set pending_count = tasks | selectattr("status", "equalto", "PENDING") | list | length %}
+{% set in_progress_count = tasks | selectattr("status", "equalto", "IN_PROGRESS") | list | length %}
+
+<div class="stats">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--accent);">✈</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ flight_count }}</div>
+            <div class="stat-label">今日航班</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(234,179,8,.15);color:var(--yellow);">◷</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ pending_count }}</div>
+            <div class="stat-label">待分配</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(168,85,247,.15);color:var(--purple);">⚡</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ in_progress_count }}</div>
+            <div class="stat-label">执行中</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(34,197,94,.15);color:var(--green);">✓</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ task_count - in_progress_count - pending_count }}</div>
+            <div class="stat-label">已完成</div>
+        </div>
+    </div>
+</div>
+
+<div class="page-header">
+    <h1>调度看板</h1>
+</div>
+
+<div class="table-wrap">
+    <div class="table-header">
+        <h2>航班列表</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>航班号</th>
+                <th>航司</th>
+                <th>计划时间</th>
+                <th>机位</th>
+                <th>区域</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set status_map = {
+                'SCHEDULED': ('blue', '已计划'),
+                'ARRIVED': ('yellow', '已到达'),
+                'DEPARTED': ('green', '已起飞'),
+                'CANCELLED': ('red', '已取消')
+            } %}
+            {% for flight in flights %}
+            {% set indicator, label = status_map.get(flight.status, ('gray', flight.status)) %}
+            <tr>
+                <td>{{ flight.flight_no }}</td>
+                <td>{{ flight.airline }}</td>
+                <td>{{ flight.scheduled_at.strftime('%m-%d %H:%M') }}</td>
+                <td>{{ flight.gate or '--' }}</td>
+                <td>{{ flight.region.code if flight.region else '--' }}</td>
+                <td><span class="indicator indicator-{{ indicator }}">{{ label }}</span></td>
+                <td><a href="/schedule/{{ flight.id }}" class="btn btn-sm btn-primary">调度</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="table-empty">暂无航班数据，请先运行 seed.py 初始化</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="table-wrap">
+    <div class="table-header">
+        <h2>最近任务</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>航班</th>
+                <th>任务类型</th>
+                <th>车辆</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set task_status_map = {
+                'PENDING': ('yellow', '待分配'),
+                'IN_PROGRESS': ('purple', '进行中'),
+                'COMPLETED': ('green', '已完成'),
+                'FAILED': ('red', '失败')
+            } %}
+            {% set type_names = {'FUEL': '加油', 'BAG': '行李', 'TOW': '牵引', 'STAIR': '客梯'} %}
+            {% for task in tasks %}
+            {% set tindicator, tlabel = task_status_map.get(task.status, ('gray', task.status)) %}
+            <tr>
+                <td>{{ task.id }}</td>
+                <td>{{ task.flight.flight_no if task.flight else '--' }}</td>
+                <td>{{ type_names.get(task.task_type, task.task_type) }}</td>
+                <td>{{ task.vehicle.plate if task.vehicle else '--' }}</td>
+                <td><span class="indicator indicator-{{ tindicator }}">{{ tlabel }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="table-empty">暂无任务数据</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}车辆状态 — 机场车辆调度系统{% endblock %}
+{% block content %}
+
+{% set idle_count = vehicles | selectattr("status", "equalto", "IDLE") | list | length %}
+{% set busy_count = vehicles | selectattr("status", "equalto", "BUSY") | list | length %}
+{% set maint_count = vehicles | selectattr("status", "equalto", "MAINTENANCE") | list | length %}
+
+<div class="stats">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--accent);">🚛</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ vehicles | length }}</div>
+            <div class="stat-label">车辆总数</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(34,197,94,.15);color:var(--green);">✓</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ idle_count }}</div>
+            <div class="stat-label">空闲</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(168,85,247,.15);color:var(--purple);">⚡</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ busy_count }}</div>
+            <div class="stat-label">工作中</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(239,68,68,.15);color:var(--red);">⚠</div>
+        <div class="stat-body">
+            <div class="stat-number">{{ maint_count }}</div>
+            <div class="stat-label">维修中</div>
+        </div>
+    </div>
+</div>
+
+<div class="page-header">
+    <h1>车辆状态</h1>
+</div>
+
+<div class="vehicle-grid">
+    {% for vehicle in vehicles %}
+    <div class="vehicle-card">
+        <div class="vehicle-plate">{{ vehicle.plate }}</div>
+        <div class="vehicle-type">{{ vehicle.get_type_display() if vehicle.get_type_display is defined else vehicle.type }}</div>
+        <div class="vehicle-meta">
+            <span>{{ vehicle.region.code if vehicle.region else '--' }}</span>
+            {% set vstatus_map = {
+                'IDLE': ('green', '空闲'),
+                'BUSY': ('purple', '工作中'),
+                'MAINTENANCE': ('red', '维修中')
+            } %}
+            {% set vindicator, vlabel = vstatus_map.get(vehicle.status, ('gray', vehicle.status)) %}
+            <span class="indicator indicator-{{ vindicator }}">{{ vlabel }}</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="table-empty" style="grid-column:1/-1;">暂无车辆数据，请先运行 seed.py 初始化</div>
+    {% endfor %}
+</div>
+
+{% endblock %}
