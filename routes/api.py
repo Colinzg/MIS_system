@@ -156,6 +156,39 @@ def assign_task():
     return jsonify({"ok": True, "task_id": task.id, "vehicle_id": vehicle.id})
 
 
+@api_bp.route("/api/auto-assign", methods=["POST"])
+def auto_assign():
+    """自动为所有 PENDING 任务分配车辆."""
+    from services.scheduler import Scheduler
+
+    flights = Flight.query.filter(
+        Flight.id.in_(db.session.query(Task.flight_id).filter(
+            Task.status == "PENDING", Task.vehicle_id.is_(None)
+        ))
+    ).all()
+
+    scheduler = Scheduler()
+    results = []
+    total_errors = 0
+    for flight in flights:
+        r = scheduler.schedule_for_flight(flight.id)
+        results.append({
+            "flight_id": flight.id,
+            "flight_no": flight.flight_no,
+            "tasks": r["tasks"],
+            "errors": r["errors"],
+        })
+        total_errors += len(r["errors"])
+
+    return jsonify({
+        "ok": True,
+        "assigned": sum(len(r["tasks"]) for r in results),
+        "flights": len(results),
+        "errors": total_errors,
+        "details": results,
+    })
+
+
 @api_bp.route("/api/vehicle/confirm-task", methods=["POST"])
 def confirm_task():
     """车辆确认接收任务（ASSIGNED → BUSY）."""
@@ -298,6 +331,9 @@ def comm_unread():
     for v in Vehicle.query.all():
         result[v.id] = {
             "plate": v.plate,
+            "type": v.type,
+            "icon": VEHICLE_TYPE_ICONS.get(v.type, "🚛"),
+            "status": v.status,
             "unread": unread_map.get(v.id, 0),
         }
     return jsonify({"ok": True, "unread": result})
