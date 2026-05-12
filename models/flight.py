@@ -13,6 +13,9 @@ class Flight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     flight_no = db.Column(db.String(16), unique=True, nullable=False, comment="航班号")
     airline = db.Column(db.String(32), nullable=False, comment="航空公司")
+    aircraft_type = db.Column(
+        db.String(10), nullable=True, comment="机型，如 A320 / B777，用于匹配 AircraftResource 规则"
+    )
     scheduled_at = db.Column(db.DateTime, nullable=False, comment="计划时间")
     gate = db.Column(db.String(8), nullable=True, comment="登机口")
     region_id = db.Column(

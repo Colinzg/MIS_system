@@ -37,6 +37,12 @@ class Task(db.Model):
         default="PENDING",
         comment="状态: PENDING / IN_PROGRESS / COMPLETED / FAILED",
     )
+    depends_on = db.Column(
+        db.Integer,
+        db.ForeignKey("tasks.id"),
+        nullable=True,
+        comment="前置任务 ID，用于表达任务依赖链",
+    )
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # relationships

@@ -34,6 +34,11 @@ class Vehicle(db.Model):
         nullable=True,
         comment="当前所在区域ID",
     )
+    attributes = db.Column(
+        db.JSON,
+        nullable=True,
+        comment="差异化属性字典: service_mode, compatible_aircraft, base_duration_min, capacity 等",
+    )
 
     # relationships
     region = db.relationship("Region", back_populates="vehicles")

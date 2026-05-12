@@ -12,12 +12,17 @@
     --text-secondary: #7f8a9b;
     --text-muted: #4d5768;
     --accent: #5488c4;
+    --accent-glow: rgba(84,136,196,.15);
     --green: #389e5a;
+    --green-glow: rgba(56,158,90,.15);
     --yellow: #b8912c;
+    --yellow-glow: rgba(184,145,44,.15);
     --red: #b9453a;
     --purple: #7c6faa;
+    --purple-glow: rgba(124,111,170,.15);
     --toggle-bg: #262d38;
     --toggle-dot: #7f8a9b;
+    --shadow: rgba(0,0,0,.4);
 }
 
 /* ── 浅色主题 ──────────────────────────── */
@@ -31,12 +36,17 @@
     --text-secondary: #5a6577;
     --text-muted: #94a1b3;
     --accent: #3b72b0;
+    --accent-glow: rgba(59,114,176,.1);
     --green: #2d8a4e;
+    --green-glow: rgba(45,138,78,.1);
     --yellow: #a67c1e;
+    --yellow-glow: rgba(166,124,30,.1);
     --red: #a33a30;
     --purple: #6b5f96;
+    --purple-glow: rgba(107,95,150,.1);
     --toggle-bg: #cbd5e1;
     --toggle-dot: #ffffff;
+    --shadow: rgba(0,0,0,.08);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,82 +63,71 @@ body {
     transition: background .2s, color .2s;
 }
 
-/* ── 侧边导航 ──────────────────────────── */
-.sidebar {
-    width: var(--sidebar-width);
-    background: var(--bg-nav);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    height: 100vh;
-    position: sticky;
-    top: 0;
-    transition: background .2s, border-color .2s;
-}
+/* ── 自定义滚动条 ────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-.sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 20px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: .5px;
-    text-decoration: none;
-}
-
-.sidebar-brand img { height: 32px; width: auto; }
-
-.sidebar-nav {
-    list-style: none;
-    padding: 12px 8px;
-    flex: 1;
-}
-
-.sidebar-nav li { margin-bottom: 2px; }
-
-.sidebar-nav a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 6px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-size: .88rem;
-    font-weight: 500;
-    transition: all .15s;
-}
-
-.sidebar-nav a:hover { color: var(--text-primary); background: rgba(0,0,0,.06); }
-
-[data-theme="dark"] .sidebar-nav a:hover { background: rgba(255,255,255,.06); }
-
-.sidebar-nav a.active {
-    color: var(--accent);
-    background: rgba(84,136,196,.12);
-}
-
-[data-theme="light"] .sidebar-nav a.active {
-    background: rgba(59,114,176,.1);
-}
-
-.sidebar-nav a .nav-icon {
-    width: 20px;
-    text-align: center;
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-
-.sidebar-footer {
-    padding: 14px 16px;
-    border-top: 1px solid var(--border);
+/* ── 顶栏 Header ──────────────────────────── */
+.app-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 52px;
+    padding: 0 24px;
+    background: var(--bg-nav);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: background .2s, border-color .2s;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-logo { height: 26px; width: auto; }
+
+.header-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: .5px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-datetime {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    letter-spacing: .3px;
+}
+
+.header-weather {
+    font-size: .78rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    padding: 3px 12px;
+    background: var(--accent-glow);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-weight: 500;
+    letter-spacing: .3px;
+}
+
+.header-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    flex-shrink: 0;
 }
 
 /* ── 主题切换开关 ──────────────────────── */
@@ -171,25 +170,390 @@ body {
 }
 
 /* ── 主内容区 ──────────────────────────── */
-.main {
-    flex: 1;
-    padding: 28px 32px;
-    min-width: 0;
+body {
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-/* ── 页面头部 ──────────────────────────── */
-.page-header {
+.main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* ── 车辆类型概览栏 ──────────────────── */
+.vtype-bar {
+    display: flex;
+    gap: 2px;
+    padding: 6px 16px 6px 12px;
+    background: var(--bg-nav);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.vtype-section {
+    flex: 0 0 auto;
+    position: relative;
+}
+
+.vtype-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all .15s;
+    font-size: .78rem;
+}
+
+.vtype-head:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+
+.vtype-head.open {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+}
+
+.vtype-icon { font-size: .9rem; flex-shrink: 0; line-height: 1; }
+
+.vtype-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.vtype-num {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-left: 4px;
+}
+
+.vtype-idle {
+    font-size: .68rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    padding: 1px 6px;
+    background: var(--green-glow);
+    border-radius: 4px;
+    color: var(--green);
+}
+
+.vtype-arrow {
+    font-size: .6rem;
+    color: var(--text-muted);
+    transition: transform .15s;
+    margin-left: 2px;
+}
+
+.vtype-head.open .vtype-arrow { transform: rotate(90deg); color: var(--accent); }
+
+.vtype-body {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 220px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    z-index: 100;
+    box-shadow: 0 12px 32px var(--shadow);
+    overflow: hidden;
+}
+
+.vtype-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: .75rem;
 }
 
-.page-header h1 {
-    font-size: 1.15rem;
+.vtype-item:hover { background: var(--bg-hover); }
+
+.vtype-plate {
+    font-family: "SF Mono", Consolas, monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.vtype-item .indicator { font-size: .7rem; }
+
+.vtype-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .75rem;
+}
+
+/* ── 主框架：侧边栏 + 态势图 ──────────── */
+.dash-frame {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ── 左侧任务侧边栏 ──────────────────── */
+.task-sidebar {
+    width: 290px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    background: var(--bg-surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.filter-box {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-row label {
+    font-size: .7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    width: 32px;
+    flex-shrink: 0;
+    letter-spacing: .3px;
+}
+
+.filter-row select {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: .75rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-body);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+
+.filter-row select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+.sidebar-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.sidebar-badge {
+    font-size: .65rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 1px 8px;
+    border-radius: 8px;
+}
+
+.task-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tcard {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: var(--bg-body);
+    transition: all .15s;
+    cursor: default;
+    border-left: 3px solid transparent;
+}
+
+.tcard:hover {
+    border-color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.tcard-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.tcard-flight {
+    font-size: .8rem;
     font-weight: 700;
     color: var(--text-primary);
+    font-family: "SF Mono", Consolas, monospace;
+}
+
+.tcard-badge {
+    font-size: .65rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
     letter-spacing: .3px;
+}
+
+.tcard-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: .7rem;
+    color: var(--text-muted);
+}
+
+.tcard-empty {
+    padding: 32px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .78rem;
+}
+
+/* ── 拖拽分配 ──────────────────────────── */
+.vtype-item.draggable {
+    cursor: grab;
+}
+.vtype-item.draggable:active {
+    cursor: grabbing;
+}
+.vtype-item.dragging {
+    opacity: 0.4;
+}
+.tcard.drop-target {
+    border-color: var(--accent) !important;
+    border-left-color: var(--accent) !important;
+    background: var(--accent-glow) !important;
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+.tcard.drop-target .tcard-flight {
+    color: var(--accent);
+}
+
+/* ── Toast 通知（浮动，不撑布局） ────────── */
+#toast-container {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 10px 18px;
+    font-size: .82rem;
+    border-radius: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-weight: 500;
+    box-shadow: 0 8px 24px var(--shadow);
+    transition: opacity .3s, transform .3s;
+    pointer-events: auto;
+    max-width: 360px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.toast-success {
+    border-left: 3px solid var(--green);
+}
+
+.toast-error {
+    border-left: 3px solid var(--red);
+}
+
+.drag-hint {
+    padding: 6px 16px 10px;
+    font-size: .68rem;
+    color: var(--text-muted);
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+/* ── 右侧态势图区 ──────────────────────── */
+.dash-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+/* ── 态势图容器 ──────────────────────── */
+.map-section {
+    background: var(--bg-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px var(--shadow);
+}
+
+#airport-map {
+    width: 100%;
+    line-height: 0;
+}
+
+#airport-map svg {
+    --map-bg: var(--bg-body);
+    --map-terminal: #162032;
+    --map-taxiway: #1e293b;
+    --map-parking: #0f172a;
+    --map-fuel: #0f172a;
+    --map-text: #e2e8f0;
+}
+
+[data-theme="light"] #airport-map svg {
+    --map-bg: #f1f5f9;
+    --map-terminal: #dbeafe;
+    --map-taxiway: #cbd5e1;
+    --map-parking: #e2e8f0;
+    --map-fuel: #e2e8f0;
+    --map-text: #1e293b;
 }
 
 /* ── 统计卡片 ────────────────────────── */
@@ -203,7 +567,7 @@ body {
 .stat-card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 14px 16px;
     display: flex;
     align-items: center;
@@ -211,14 +575,12 @@ body {
     transition: border-color .2s, background .2s;
 }
 
-.stat-card:hover { border-color: #3a4555; }
-
-[data-theme="light"] .stat-card:hover { border-color: #b0b8c4; }
+.stat-card:hover { border-color: var(--accent); }
 
 .stat-icon {
     width: 36px;
     height: 36px;
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -244,7 +606,7 @@ body {
 .table-wrap {
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 6px;
     overflow: hidden;
     margin-bottom: 24px;
     transition: background .2s, border-color .2s;
@@ -336,7 +698,7 @@ table tbody td:first-child { color: var(--text-primary); font-weight: 600; }
     padding: 5px 12px;
     font-size: .78rem;
     font-weight: 600;
-    border-radius: 4px;
+    border-radius: 5px;
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-secondary);
@@ -377,7 +739,7 @@ table tbody td:first-child { color: var(--text-primary); font-weight: 600; }
     font-size: .82rem;
     border: 1px solid var(--border);
     background: var(--bg-surface);
-    border-radius: 4px;
+    border-radius: 5px;
     margin-bottom: 6px;
 }
 
@@ -395,14 +757,12 @@ table tbody td:first-child { color: var(--text-primary); font-weight: 600; }
 .vehicle-card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 16px;
     transition: border-color .2s, background .2s;
 }
 
-.vehicle-card:hover { border-color: #3a4555; }
-
-[data-theme="light"] .vehicle-card:hover { border-color: #b0b8c4; }
+.vehicle-card:hover { border-color: var(--accent); }
 
 .vehicle-card .vehicle-plate {
     font-family: "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
@@ -429,13 +789,15 @@ table tbody td:first-child { color: var(--text-primary); font-weight: 600; }
 }
 
 /* ── 响应式 ────────────────────────────── */
+@media (max-width: 900px) {
+    .task-sidebar { width: 250px; }
+    .dash-body { padding: 12px; }
+}
+
 @media (max-width: 768px) {
-    .sidebar { width: 56px; }
-    .sidebar-brand span,
-    .sidebar-nav a span,
-    .sidebar-footer { display: none; }
-    .sidebar-nav a { justify-content: center; padding: 10px; }
-    .main { padding: 20px 16px; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .vehicle-grid { grid-template-columns: 1fr; }
+    .vtype-bar { flex-wrap: wrap; gap: 4px; padding: 6px 12px; }
+    .vtype-section { flex: 1 1 calc(50% - 4px); }
+    .dash-frame { flex-direction: column; }
+    .task-sidebar { width: 100%; max-height: 300px; border-right: none; border-bottom: 1px solid var(--border); }
+    #airport-map { padding: 6px; }
 }

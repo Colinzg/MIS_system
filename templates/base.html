@@ -3,38 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}机场车辆调度系统{% endblock %}</title>
+    <title>{% block title %}无锡硕放机场地面车辆调度系统{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
 
-<aside class="sidebar">
-    <a href="/" class="sidebar-brand">
-        <img src="{{ url_for('static', filename='icon.png') }}" alt="">
-        <span>调度系统</span>
-    </a>
-    <ul class="sidebar-nav">
-        <li>
-            <a href="/dashboard" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
-                <span class="nav-icon">📊</span>
-                <span>调度看板</span>
-            </a>
-        </li>
-        <li>
-            <a href="/vehicles" class="{% if request.endpoint == 'vehicles' %}active{% endif %}">
-                <span class="nav-icon">🚛</span>
-                <span>车辆状态</span>
-            </a>
-        </li>
-    </ul>
-    <div class="sidebar-footer">
+<header class="app-header">
+    <div class="header-left">
+        <img src="{{ url_for('static', filename='icon.png') }}" alt="" class="header-logo">
+        <span class="header-title">无锡硕放机场地面车辆调度系统</span>
+    </div>
+    <div class="header-right">
+        <span class="header-datetime" id="headerDatetime"></span>
+        <span class="header-sep"></span>
+        <span class="header-weather" id="headerWeather">--</span>
         <div class="theme-toggle" onclick="toggleTheme()">
-            <span class="theme-toggle-label" id="themeLabel">深色</span>
             <span class="toggle-track"></span>
+            <span class="theme-toggle-label" id="themeLabel">深色</span>
         </div>
     </div>
-</aside>
+</header>
 
 <main class="main">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -58,6 +48,61 @@
     }
 })();
 
+var WEEK_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+var WX_CODES = {
+    0: '☀️ 晴', 1: '🌤 少云', 2: '⛅ 多云', 3: '☁️ 阴',
+    45: '🌫 雾', 48: '🌫 雾',
+    51: '🌦 小毛毛雨', 53: '🌦 毛毛雨', 55: '🌦 大毛毛雨',
+    56: '🌧 冻毛毛雨', 57: '🌧 冻毛毛雨',
+    61: '🌦 小雨', 63: '🌧 中雨', 65: '🌧 大雨',
+    66: '🌧 冻雨', 67: '🌧 冻雨',
+    71: '🌨 小雪', 73: '🌨 中雪', 75: '❄️ 大雪',
+    77: '❄️ 雪粒',
+    80: '🌦 阵雨', 81: '🌧 中阵雨', 82: '🌧 大阵雨',
+    85: '🌨 小阵雪', 86: '❄️ 大阵雪',
+    95: '⛈ 雷暴', 96: '⛈ 雷暴+冰雹', 99: '⛈ 雷暴+冰雹',
+};
+
+function updateClock() {
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : n; };
+    var s = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
+          + ' 周' + WEEK_NAMES[now.getDay()] + ' '
+          + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById('headerDatetime').textContent = s;
+}
+
+function fetchWeather() {
+    var cached = sessionStorage.getItem('wx_weather');
+    if (cached) {
+        try {
+            var c = JSON.parse(cached);
+            if (Date.now() - c.ts < 1800000) {
+                document.getElementById('headerWeather').textContent = c.text;
+                return;
+            }
+        } catch(_) {}
+    }
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=31.49&longitude=120.31&current_weather=true&timezone=Asia/Shanghai')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            var cw = d.current_weather;
+            var code = cw.weathercode;
+            var temp = Math.round(cw.temperature);
+            var label = WX_CODES[code] || '🌡 ' + code;
+            var txt = label + ' ' + temp + '°C';
+            document.getElementById('headerWeather').textContent = txt;
+            sessionStorage.setItem('wx_weather', JSON.stringify({text: txt, ts: Date.now()}));
+        })
+        .catch(function() {
+            document.getElementById('headerWeather').textContent = '🌡 --°C';
+        });
+}
+
+updateClock();
+setInterval(updateClock, 30000);
+fetchWeather();
+
 function toggleTheme() {
     var html = document.documentElement;
     var label = document.getElementById('themeLabel');
@@ -72,6 +117,8 @@ function toggleTheme() {
     }
 }
 </script>
+
+{% block scripts %}{% endblock %}
 
 </body>
 </html>

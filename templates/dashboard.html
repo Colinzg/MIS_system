@@ -1,124 +1,253 @@
 {% extends "base.html" %}
-{% block title %}调度看板 — 机场车辆调度系统{% endblock %}
+{% block title %}调度看板 — 无锡硕放机场地面车辆调度系统{% endblock %}
 {% block content %}
 
-{% set flight_count = flights | length %}
-{% set task_count = tasks | length %}
-{% set pending_count = tasks | selectattr("status", "equalto", "PENDING") | list | length %}
-{% set in_progress_count = tasks | selectattr("status", "equalto", "IN_PROGRESS") | list | length %}
+{% set pending_tasks = tasks | selectattr("status", "equalto", "PENDING") | list %}
+{% set task_type_names = {'FUEL': '加油', 'BAG': '行李', 'TOW': '牵引', 'STAIR': '客梯'} %}
+{% set vtype_names = {'FUEL': '加油车', 'BAG': '行李车', 'TOW': '牵引车', 'STAIR': '客梯车'} %}
+{% set vtype_icons = {'FUEL': '⛽', 'BAG': '🧳', 'TOW': '🚜', 'STAIR': '🪜'} %}
+{% set vstatus_map = {
+    'IDLE': ('green', '空闲'),
+    'BUSY': ('purple', '工作中'),
+    'MAINTENANCE': ('yellow', '维修中')
+} %}
 
-<div class="stats">
-    <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--accent);">✈</div>
-        <div class="stat-body">
-            <div class="stat-number">{{ flight_count }}</div>
-            <div class="stat-label">今日航班</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(234,179,8,.15);color:var(--yellow);">◷</div>
-        <div class="stat-body">
-            <div class="stat-number">{{ pending_count }}</div>
-            <div class="stat-label">待分配</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(168,85,247,.15);color:var(--purple);">⚡</div>
-        <div class="stat-body">
-            <div class="stat-number">{{ in_progress_count }}</div>
-            <div class="stat-label">执行中</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(34,197,94,.15);color:var(--green);">✓</div>
-        <div class="stat-body">
-            <div class="stat-number">{{ task_count - in_progress_count - pending_count }}</div>
-            <div class="stat-label">已完成</div>
-        </div>
-    </div>
-</div>
+{% set task_type_colors = {'FUEL': '#eab308', 'BAG': '#22c55e', 'TOW': '#a855f7', 'STAIR': '#3b82f6'} %}
 
-<div class="page-header">
-    <h1>调度看板</h1>
-</div>
-
-<div class="table-wrap">
-    <div class="table-header">
-        <h2>航班列表</h2>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>航班号</th>
-                <th>航司</th>
-                <th>计划时间</th>
-                <th>机位</th>
-                <th>区域</th>
-                <th>状态</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% set status_map = {
-                'SCHEDULED': ('blue', '已计划'),
-                'ARRIVED': ('yellow', '已到达'),
-                'DEPARTED': ('green', '已起飞'),
-                'CANCELLED': ('red', '已取消')
-            } %}
-            {% for flight in flights %}
-            {% set indicator, label = status_map.get(flight.status, ('gray', flight.status)) %}
-            <tr>
-                <td>{{ flight.flight_no }}</td>
-                <td>{{ flight.airline }}</td>
-                <td>{{ flight.scheduled_at.strftime('%m-%d %H:%M') }}</td>
-                <td>{{ flight.gate or '--' }}</td>
-                <td>{{ flight.region.code if flight.region else '--' }}</td>
-                <td><span class="indicator indicator-{{ indicator }}">{{ label }}</span></td>
-                <td><a href="/schedule/{{ flight.id }}" class="btn btn-sm btn-primary">调度</a></td>
-            </tr>
-            {% else %}
-            <tr><td colspan="7" class="table-empty">暂无航班数据，请先运行 seed.py 初始化</td></tr>
+{# ── 车辆类型概览栏（header 下方） ── #}
+<div class="vtype-bar">
+    {% for code, name in vtype_names.items() %}
+    {% set tv = vehicles | selectattr("type", "equalto", code) | list %}
+    {% set idle_v = tv | selectattr("status", "equalto", "IDLE") | list | length %}
+    <div class="vtype-section">
+        <div class="vtype-head" onclick="toggleVType(this)">
+            <span class="vtype-icon">{{ vtype_icons[code] }}</span>
+            <span class="vtype-name">{{ name }}</span>
+            <span class="vtype-num">{{ tv | length }}辆</span>
+            <span class="vtype-idle">{{ idle_v }}空闲</span>
+            <span class="vtype-arrow">▶</span>
+        </div>
+        <div class="vtype-body">
+            {% if tv %}
+            {% for v in tv %}
+            {% set vi, vl = vstatus_map.get(v.status, ('gray', v.status)) %}
+            <div class="vtype-item{% if v.status == 'IDLE' %} draggable{% endif %}"
+                 {% if v.status == 'IDLE' %}
+                 draggable="true"
+                 data-vehicle-id="{{ v.id }}"
+                 data-vehicle-type="{{ v.type }}"
+                 data-vehicle-plate="{{ v.plate }}"
+                 ondragstart="onDragStart(event)"
+                 {% endif %}>
+                <span class="vtype-plate">{{ v.plate }}</span>
+                <span class="indicator indicator-{{ vi }}">{{ vl }}</span>
+            </div>
             {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<div class="table-wrap">
-    <div class="table-header">
-        <h2>最近任务</h2>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>航班</th>
-                <th>任务类型</th>
-                <th>车辆</th>
-                <th>状态</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% set task_status_map = {
-                'PENDING': ('yellow', '待分配'),
-                'IN_PROGRESS': ('purple', '进行中'),
-                'COMPLETED': ('green', '已完成'),
-                'FAILED': ('red', '失败')
-            } %}
-            {% set type_names = {'FUEL': '加油', 'BAG': '行李', 'TOW': '牵引', 'STAIR': '客梯'} %}
-            {% for task in tasks %}
-            {% set tindicator, tlabel = task_status_map.get(task.status, ('gray', task.status)) %}
-            <tr>
-                <td>{{ task.id }}</td>
-                <td>{{ task.flight.flight_no if task.flight else '--' }}</td>
-                <td>{{ type_names.get(task.task_type, task.task_type) }}</td>
-                <td>{{ task.vehicle.plate if task.vehicle else '--' }}</td>
-                <td><span class="indicator indicator-{{ tindicator }}">{{ tlabel }}</span></td>
-            </tr>
             {% else %}
-            <tr><td colspan="5" class="table-empty">暂无任务数据</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            <div class="vtype-empty">暂无车辆</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
 </div>
 
+{# ── 主布局：左侧边栏 + 态势图 ── #}
+<div class="dash-frame">
+    <aside class="task-sidebar">
+        <div class="sidebar-inner">
+            {# ── 筛选区 ── #}
+            <div class="filter-box">
+                <div class="filter-row">
+                    <label>机位</label>
+                    <select id="filterGate" onchange="filterTasks()">
+                        <option value="">全部</option>
+                        {% set gates = pending_tasks | map(attribute='flight') | selectattr('gate') | map(attribute='gate') | list | unique | sort %}
+                        {% for g in gates %}
+                        <option value="{{ g }}">{{ g }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <label>类型</label>
+                    <select id="filterType" onchange="filterTasks()">
+                        <option value="">全部</option>
+                        {% set types = pending_tasks | map(attribute='task_type') | list | unique | sort %}
+                        {% for t in types %}
+                        <option value="{{ t }}">{{ task_type_names.get(t, t) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {# ── 任务列表标题 ── #}
+            <div class="sidebar-title">
+                <span>待分配任务</span>
+                <span class="sidebar-badge">{{ pending_tasks | length }}</span>
+            </div>
+            <div class="drag-hint">从上方拖拽车辆到任务进行分配</div>
+
+            {# ── 任务列表 ── #}
+            <div class="task-list" id="taskList">
+                {% if pending_tasks %}
+                {% for task in pending_tasks %}
+                <div class="tcard" data-gate="{{ task.flight.gate if task.flight else '' }}" data-type="{{ task.task_type }}" data-task-id="{{ task.id }}"
+                     ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                    <div class="tcard-top">
+                        <span class="tcard-flight">{{ task.flight.flight_no if task.flight else '--' }}</span>
+                        <span class="tcard-badge" style="background:{{ task_type_colors.get(task.task_type, '#64748b') }}22;color:{{ task_type_colors.get(task.task_type, '#64748b') }}">{{ task_type_names.get(task.task_type, task.task_type) }}</span>
+                    </div>
+                    <div class="tcard-meta">
+                        <span>机位 {{ task.flight.gate if task.flight else '--' }}</span>
+                        <span>{{ task.flight.scheduled_at.strftime('%H:%M') if task.flight else '--' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="tcard-empty">暂无待分配任务</div>
+                {% endif %}
+            </div>
+        </div>
+    </aside>
+
+    <div class="dash-body">
+        <div class="map-section">
+            <div id="airport-map"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='airport-map.js') }}"></script>
+<script>
+function toggleVType(el) {
+    var isOpen = el.classList.contains('open');
+    // 关掉所有
+    document.querySelectorAll('.vtype-head.open').forEach(function(h) {
+        h.classList.remove('open');
+        h.nextElementSibling.style.display = 'none';
+    });
+    // 点的是已开的就收工，否则展开
+    if (!isOpen) {
+        el.classList.add('open');
+        el.nextElementSibling.style.display = 'block';
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.vtype-section')) {
+        document.querySelectorAll('.vtype-head.open').forEach(function(h) {
+            h.classList.remove('open');
+            h.nextElementSibling.style.display = 'none';
+        });
+    }
+});
+
+function filterTasks() {
+    var gate = document.getElementById('filterGate').value;
+    var type = document.getElementById('filterType').value;
+    document.querySelectorAll('.tcard').forEach(function(c) {
+        var g = !gate || c.dataset.gate === gate;
+        var t = !type || c.dataset.type === type;
+        c.style.display = g && t ? '' : 'none';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderAirportMap('airport-map');
+});
+
+/* ── 拖拽分配车辆 ──────────────────────── */
+function onDragStart(e) {
+    var el = e.target.closest('[data-vehicle-id]');
+    if (!el) return;
+    if (!el.classList.contains('vtype-item')) return;
+    var data = {
+        vehicle_id: el.dataset.vehicleId,
+        vehicle_type: el.dataset.vehicleType,
+        vehicle_plate: el.dataset.vehiclePlate,
+    };
+    e.dataTransfer.setData('text/plain', JSON.stringify(data));
+    e.dataTransfer.effectAllowed = 'move';
+    el.classList.add('dragging');
+}
+
+document.addEventListener('dragend', function(e) {
+    document.querySelectorAll('.dragging').forEach(function(el) {
+        el.classList.remove('dragging');
+    });
+    document.querySelectorAll('.tcard.drop-target').forEach(function(el) {
+        el.classList.remove('drop-target');
+    });
+});
+
+function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drop-target');
+}
+
+function onDragLeave(e) {
+    e.currentTarget.classList.remove('drop-target');
+}
+
+function onDrop(e) {
+    e.preventDefault();
+    var card = e.currentTarget;
+    card.classList.remove('drop-target');
+
+    var raw = e.dataTransfer.getData('text/plain');
+    if (!raw) return;
+    var veh;
+    try { veh = JSON.parse(raw); } catch(_) { return; }
+
+    var taskId = card.dataset.taskId;
+    if (!taskId) return;
+
+    // 车型匹配检查
+    var cardType = card.dataset.type;
+    if (cardType && veh.vehicle_type !== cardType) {
+        showFlash('error', '车型不匹配：需要 ' + cardType + '，拖拽的是 ' + veh.vehicle_type);
+        return;
+    }
+
+    fetch('/api/assign-task', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({task_id: parseInt(taskId), vehicle_id: parseInt(veh.vehicle_id)}),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+        if (resp.ok) {
+            showFlash('success', '已分配 ' + veh.vehicle_plate + ' → 任务 #' + taskId);
+            // 刷新页面以更新所有状态
+            setTimeout(function() { location.reload(); }, 800);
+        } else {
+            showFlash('error', resp.error || '分配失败');
+        }
+    })
+    .catch(function() {
+        showFlash('error', '网络错误，请重试');
+    });
+}
+
+function showFlash(category, msg) {
+    var container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    var div = document.createElement('div');
+    div.className = 'toast toast-' + category;
+    div.textContent = msg;
+    container.appendChild(div);
+    setTimeout(function() {
+        div.style.opacity = '0';
+        div.style.transform = 'translateX(80px)';
+        setTimeout(function() { div.remove(); }, 300);
+    }, 3000);
+}
+</script>
 {% endblock %}

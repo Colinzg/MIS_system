@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}车辆状态 — 机场车辆调度系统{% endblock %}
+{% block title %}车辆状态 — 无锡硕放机场地面车辆调度系统{% endblock %}
 {% block content %}
 
 {% set idle_count = vehicles | selectattr("status", "equalto", "IDLE") | list | length %}
