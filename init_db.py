@@ -4,14 +4,15 @@
 应用启动（app.py）不再执行任何数据库结构修改。
 
 用法:
-    python init_db.py               清空数据库并重建所有表
-    python init_db.py --seed        清空重建 + 写入种子数据
+    python init_db.py               创建所有表（已有表不受影响，不会加列）
+    python init_db.py --seed        创建表 + 写入种子数据
+    python init_db.py --reset       清空全部数据并重建（开发环境用）
     python init_db.py --migrate     检查模型与数据库差异并输出 ALTER 语句
 
 建议流程:
     1. 首次部署:  python init_db.py --seed
     2. 模型变更:  python init_db.py --migrate  查看差异，手动执行 ALTER
-    3. 开发重置:  python init_db.py --seed
+    3. 开发重置:  python init_db.py --reset --seed
 """
 import sys
 import argparse
@@ -20,12 +21,12 @@ from app import create_app
 from models import db
 
 
-def init(seed_data=False, reset=True):
+def init(seed_data=False, reset=False):
     """初始化数据库结构。
 
     Args:
         seed_data: 是否同时写入种子数据
-        reset: 是否清空重建（会丢失所有数据），默认 True
+        reset: 是否清空重建（会丢失所有数据）
     """
     app = create_app()
     with app.app_context():
@@ -82,15 +83,17 @@ def check_migration():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="机场地面车辆调度系统 — 数据库初始化工具")
-    parser.add_argument("--seed", action="store_true", help="清空重建后写入种子数据")
+    parser.add_argument("--seed", action="store_true", help="初始化表结构后写入种子数据")
+    parser.add_argument("--reset", action="store_true", help="清空所有表并重建（开发环境用）")
     parser.add_argument("--migrate", action="store_true", help="检查模型与数据库差异")
     args = parser.parse_args()
 
     if args.migrate:
         check_migration()
     else:
-        confirm = input("⚠️  将清空所有数据并重建表结构，确定吗？(yes/no): ")
-        if confirm.lower() != "yes":
-            print("已取消")
-            sys.exit(0)
-        init(seed_data=args.seed)
+        if args.reset:
+            confirm = input("⚠️  确定要清空所有数据吗？(yes/no): ")
+            if confirm.lower() != "yes":
+                print("已取消")
+                sys.exit(0)
+        init(seed_data=args.seed, reset=args.reset)

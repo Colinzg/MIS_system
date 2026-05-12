@@ -156,6 +156,14 @@ function filterTasks() {
 
 document.addEventListener('DOMContentLoaded', function() {
     renderAirportMap('airport-map');
+    // 恢复拖拽分配前保存的筛选条件
+    var savedGate = sessionStorage.getItem('filterGate');
+    var savedType = sessionStorage.getItem('filterType');
+    if (savedGate) document.getElementById('filterGate').value = savedGate;
+    if (savedType) document.getElementById('filterType').value = savedType;
+    if (savedGate || savedType) filterTasks();
+    sessionStorage.removeItem('filterGate');
+    sessionStorage.removeItem('filterType');
 });
 
 /* ── 拖拽分配车辆 ──────────────────────── */
@@ -221,7 +229,9 @@ function onDrop(e) {
     .then(function(resp) {
         if (resp.ok) {
             showFlash('success', '已分配 ' + veh.vehicle_plate + ' → 任务 #' + taskId);
-            // 刷新页面以更新所有状态
+            // 保存筛选条件后再刷新页面
+            sessionStorage.setItem('filterGate', document.getElementById('filterGate').value);
+            sessionStorage.setItem('filterType', document.getElementById('filterType').value);
             setTimeout(function() { location.reload(); }, 800);
         } else {
             showFlash('error', resp.error || '分配失败');
