@@ -35,6 +35,6 @@ class CommunicationLog(db.Model):
             "sender": self.sender,
             "content": self.content,
             "msg_type": self.msg_type,
-            "created_at": self.created_at.strftime("%H:%M:%S"),
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "read": self.read,
         }
