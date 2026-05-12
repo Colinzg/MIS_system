@@ -21,7 +21,7 @@ class Monitor:
         Returns:
             [{"task_id": int, "flight_id": int, "task_type": str, "overdue_minutes": float}, ...]
         """
-        now = datetime.utcnow()
+        now = datetime.utcnow() + timedelta(hours=8)  # 北京时间 (UTC+8)
         overdue = []
         tasks = Task.query.filter(
             Task.status.in_(["PENDING", "IN_PROGRESS"]),

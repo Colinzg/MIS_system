@@ -109,23 +109,24 @@ def seed():
         db.session.add_all(edges)
         db.session.flush()
 
-        # ── 航班 ────
-        now = datetime.utcnow()
-        base = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-
+        # ── 航班（未来3小时内，间隔约30分钟） ────
+        now = datetime.utcnow() + timedelta(hours=8)  # 北京时间 (UTC+8)
+        # 首班约10分钟后，之后每30分钟一班
+        # 飞机提前约40~50分钟到达机位，之后开始保障作业
+        flights_data = [
+            ("CA1234", "中国国航", "A320", now + timedelta(minutes=10), "A01", 40),
+            ("MU2567", "东方航空", "B777", now + timedelta(minutes=40), "B05", 50),
+            ("CZ3890", "南方航空", "A320", now + timedelta(hours=1, minutes=10), "A03", 40),
+            ("3U8888", "四川航空", "A320", now + timedelta(hours=1, minutes=40), "B02", 40),
+            ("HU7205", "海南航空", "B777", now + timedelta(hours=2, minutes=10), "A07", 50),
+            ("ZH9102", "深圳航空", "A320", now + timedelta(hours=2, minutes=40), "B08", 40),
+        ]
         flights = [
-            Flight(flight_no="CA1234", airline="中国国航", aircraft_type="A320",
-                   scheduled_at=base, gate="A01", region_id=regions[0].id),
-            Flight(flight_no="MU2567", airline="东方航空", aircraft_type="B777",
-                   scheduled_at=base + timedelta(hours=1), gate="B05", region_id=regions[1].id),
-            Flight(flight_no="CZ3890", airline="南方航空", aircraft_type="A320",
-                   scheduled_at=base + timedelta(hours=1, minutes=30), gate="A03", region_id=regions[0].id),
-            Flight(flight_no="3U8888", airline="四川航空", aircraft_type="A320",
-                   scheduled_at=base + timedelta(hours=2), gate="B02", region_id=regions[1].id),
-            Flight(flight_no="HU7205", airline="海南航空", aircraft_type="B777",
-                   scheduled_at=base + timedelta(hours=3), gate="A07", region_id=regions[0].id),
-            Flight(flight_no="ZH9102", airline="深圳航空", aircraft_type="A320",
-                   scheduled_at=base + timedelta(hours=4), gate="B08", region_id=regions[1].id),
+            Flight(flight_no=fn, airline=al, aircraft_type=at,
+                   scheduled_at=dep,  # 计划起飞
+                   arrival_at=dep - timedelta(minutes=turn),  # 到达机位
+                   gate=g, region_id=regions[0 if "A" in g else 1].id)
+            for fn, al, at, dep, g, turn in flights_data
         ]
         db.session.add_all(flights)
         db.session.commit()

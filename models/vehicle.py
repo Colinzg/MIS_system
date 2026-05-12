@@ -8,7 +8,7 @@
   - TOW   : 牵引车
   - STAIR : 客梯车
 
-状态枚举: IDLE（空闲） / BUSY（工作中） / MAINTENANCE（维修中）
+状态枚举: IDLE（空闲） / ASSIGNED（已分配） / CONFIRMED（已确认） / BUSY（工作中） / MAINTENANCE（维修中）
 """
 from models import db
 
@@ -26,7 +26,7 @@ class Vehicle(db.Model):
     status = db.Column(
         db.String(16),
         default="IDLE",
-        comment="状态: IDLE / BUSY / MAINTENANCE",
+        comment="状态: IDLE / ASSIGNED / CONFIRMED / BUSY / MAINTENANCE",
     )
     region_id = db.Column(
         db.Integer,
@@ -43,6 +43,7 @@ class Vehicle(db.Model):
     # relationships
     region = db.relationship("Region", back_populates="vehicles")
     tasks = db.relationship("Task", back_populates="vehicle", lazy="dynamic")
+    comm_logs = db.relationship("CommunicationLog", back_populates="vehicle", lazy="dynamic")
 
     def __repr__(self):
         return f"<Vehicle {self.plate} ({self.type})>"

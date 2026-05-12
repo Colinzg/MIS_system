@@ -6,6 +6,7 @@
 
 数据流向: 任务生成 → 调度规划 (输出待分配任务列表)
 """
+from datetime import datetime, timedelta
 from models import db
 from models.flight import Flight
 from models.aircraft_resource import AircraftResource
@@ -55,10 +56,57 @@ class TaskGenerator:
                     flight_id=flight.id,
                     task_type=rule.required_vehicle_type,
                     status="PENDING",
-                    scheduled_start=flight.scheduled_at,
+                    scheduled_start=flight.arrival_at or flight.scheduled_at,
                 )
                 db.session.add(task)
                 created += 1
 
         db.session.commit()
         return {"flight_id": flight_id, "tasks_created": created, "errors": errors}
+
+    @staticmethod
+    def generate_for_upcoming(hours: int = 3) -> dict:
+        """为未来指定小时内所有尚无任务的航班生成保障任务.
+
+        遍历指定时间窗口内的航班，跳过已有 PENDING 任务的航班。
+        适合定时任务或按钮触发的批量生成场景。
+
+        Args:
+            hours: 向前扫描的小时数，默认 3
+
+        Returns:
+            {"flights_processed": int, "tasks_created": int, "errors": [str]}
+        """
+        now = datetime.utcnow() + timedelta(hours=8)  # 北京时间 (UTC+8)
+        deadline = now + timedelta(hours=hours)
+
+        flights = Flight.query.filter(
+            Flight.scheduled_at >= now,
+            Flight.scheduled_at <= deadline,
+        ).order_by(Flight.scheduled_at).all()
+
+        processed = 0
+        total_created = 0
+        errors = []
+
+        for flight in flights:
+            # 跳过已有待分配任务的航班
+            existing = Task.query.filter_by(
+                flight_id=flight.id, status="PENDING"
+            ).count()
+            if existing > 0:
+                continue
+
+            try:
+                result = TaskGenerator.generate_for_flight(flight.id)
+                total_created += result["tasks_created"]
+                processed += 1
+                errors.extend(result["errors"])
+            except ValueError as e:
+                errors.append(str(e))
+
+        return {
+            "flights_processed": processed,
+            "tasks_created": total_created,
+            "errors": errors,
+        }

@@ -14,3 +14,4 @@ from .flight import Flight  # noqa: E402, F401
 from .task import Task  # noqa: E402, F401
 from .aircraft_resource import AircraftResource  # noqa: E402, F401
 from .road_network import RoadNode, RoadEdge  # noqa: E402, F401
+from .comm_log import CommunicationLog  # noqa: E402, F401

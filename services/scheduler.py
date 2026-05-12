@@ -72,7 +72,7 @@ class Scheduler:
             if vehicle:
                 task.vehicle_id = vehicle.id
                 task.status = "IN_PROGRESS"
-                vehicle.status = "BUSY"
+                vehicle.status = "ASSIGNED"
                 result["tasks"].append({
                     "task_type": task.task_type,
                     "vehicle_id": vehicle.id,

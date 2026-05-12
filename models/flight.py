@@ -16,7 +16,10 @@ class Flight(db.Model):
     aircraft_type = db.Column(
         db.String(10), nullable=True, comment="机型，如 A320 / B777，用于匹配 AircraftResource 规则"
     )
-    scheduled_at = db.Column(db.DateTime, nullable=False, comment="计划时间")
+    scheduled_at = db.Column(db.DateTime, nullable=False, comment="计划起飞时间")
+    arrival_at = db.Column(
+        db.DateTime, nullable=True, comment="预计到达机位时间，早于 scheduled_at"
+    )
     gate = db.Column(db.String(8), nullable=True, comment="登机口")
     region_id = db.Column(
         db.Integer,

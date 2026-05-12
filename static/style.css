@@ -392,20 +392,26 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+    display: block;
+}
+
+.task-list > .fcard + .fcard {
+    margin-top: 5px;
 }
 
 .tcard {
     border: 1px solid var(--border);
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 8px 12px 6px;
     background: var(--bg-body);
     transition: all .15s;
     cursor: default;
     border-left: 3px solid transparent;
 }
+
+.tcard.urg-green { border-left-color: var(--green); }
+.tcard.urg-yellow { border-left-color: var(--yellow); }
+.tcard.urg-red { border-left-color: var(--red); }
 
 .tcard:hover {
     border-color: var(--accent);
@@ -420,11 +426,32 @@ body {
     margin-bottom: 4px;
 }
 
-.tcard-flight {
+.tcard-acft {
+    font-size: .9rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: .5px;
+}
+
+.tcard-gate {
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 4px;
+    font-size: .82rem;
+}
+
+.tcard-flight-muted {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .7rem;
+    color: var(--text-muted);
+}
+
+.tcard-time {
+    font-family: "SF Mono", Consolas, monospace;
     font-size: .8rem;
     font-weight: 700;
     color: var(--text-primary);
-    font-family: "SF Mono", Consolas, monospace;
+    letter-spacing: .3px;
 }
 
 .tcard-badge {
@@ -449,6 +476,214 @@ body {
     font-size: .78rem;
 }
 
+/* ── 航班聚合卡片 ──────────────────────── */
+.fcard {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-body);
+    transition: all .15s;
+    overflow: hidden;
+}
+
+.fcard.urg-green { border-left: 3px solid var(--green); }
+.fcard.urg-yellow { border-left: 3px solid var(--yellow); }
+.fcard.urg-red { border-left: 3px solid var(--red); }
+
+.fcard-header {
+    padding: 8px 12px 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .1s;
+}
+
+.fcard-header:hover { background: var(--bg-hover); }
+
+.fcard-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fcard-acft {
+    font-size: .9rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: .5px;
+}
+
+.fcard-gate {
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 4px;
+    font-size: .82rem;
+}
+
+.fcard-count {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .68rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+    padding: 1px 7px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.fcard-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.fcard-flight {
+    font-size: .7rem;
+    font-family: "SF Mono", Consolas, monospace;
+    color: var(--text-muted);
+}
+
+.fcard-arrow {
+    font-size: .55rem;
+    color: var(--text-muted);
+    transition: transform .15s;
+}
+
+.fcard-urg {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border);
+    gap: 6px;
+}
+
+.fcard-slot {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .62rem;
+    color: var(--text-secondary);
+    letter-spacing: .2px;
+}
+
+.fcard-slot-arrow {
+    margin: 0 3px;
+    color: var(--text-muted);
+    font-size: .58rem;
+}
+
+.fcard-urg-ind {
+    font-size: .6rem;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: .2px;
+}
+
+.fcard-urg-ind.urg-green { color: var(--green); }
+.fcard-urg-ind.urg-yellow { color: var(--yellow); }
+.fcard-urg-ind.urg-red { color: var(--red); }
+
+/* ── 航班内任务子项 ────────────────────── */
+.fcard-body {
+    border-top: 1px solid var(--border);
+    background: var(--bg-nav);
+}
+
+.ftask {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 6px 16px;
+    font-size: .72rem;
+    cursor: default;
+    transition: background .1s;
+    border-bottom: 1px solid var(--border);
+}
+
+.ftask:last-child { border-bottom: none; }
+
+.ftask:hover { background: var(--bg-hover); }
+
+.ftask.drop-target {
+    background: var(--accent-glow) !important;
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.ftask-icon {
+    font-size: .78rem;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.ftask-type {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ftask-vehicle {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .65rem;
+    color: var(--green);
+    font-weight: 600;
+    padding: 1px 6px;
+    background: var(--green-glow);
+    border-radius: 3px;
+}
+
+.ftask-status {
+    font-size: .62rem;
+    color: var(--text-muted);
+    padding: 1px 6px;
+    border: 1px dashed var(--border);
+    border-radius: 3px;
+}
+
+/* ── 任务紧急度 ──────────────────────────── */
+.tcard-urg {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border);
+}
+
+.tcard-urg-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tcard-urg-dot.urg-green { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+.tcard-urg-dot.urg-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow-glow); }
+.tcard-urg-dot.urg-red { background: var(--red); box-shadow: 0 0 6px var(--red-glow); }
+
+.tcard-urg-text {
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+
+.tcard-urg-text.urg-green { color: var(--green); }
+.tcard-urg-text.urg-yellow { color: var(--yellow); }
+.tcard-urg-text.urg-red { color: var(--red); }
+
+.tcard-slot {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .65rem;
+    color: var(--text-secondary);
+    letter-spacing: .2px;
+}
+
+.tcard-slot-arrow {
+    margin: 0 4px;
+    color: var(--text-muted);
+    font-size: .6rem;
+}
+
 /* ── 拖拽分配 ──────────────────────────── */
 .vtype-item.draggable {
     cursor: grab;
@@ -464,9 +699,6 @@ body {
     border-left-color: var(--accent) !important;
     background: var(--accent-glow) !important;
     box-shadow: 0 0 12px var(--accent-glow);
-}
-.tcard.drop-target .tcard-flight {
-    color: var(--accent);
 }
 
 /* ── Toast 通知（浮动，不撑布局） ────────── */
@@ -527,6 +759,7 @@ body {
 
 /* ── 态势图容器 ──────────────────────── */
 .map-section {
+    flex: 0 0 280px;
     background: var(--bg-surface);
     border-radius: 8px;
     overflow: hidden;
@@ -788,6 +1021,344 @@ table tbody td:first-child { color: var(--text-primary); font-weight: 600; }
     color: var(--text-secondary);
 }
 
+/* ── 底部面板（任务追踪 + 特殊情况处置） ──── */
+.dash-panels {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    min-height: 0;
+}
+
+.panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: .3px;
+}
+
+.panel-badge {
+    font-size: .62rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+.panel-badge-warn {
+    color: var(--yellow);
+    background: var(--yellow-glow);
+}
+
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+}
+
+.panel-empty {
+    padding: 28px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .75rem;
+}
+
+/* ── 追踪表格 ──────────────────────────── */
+.track-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .72rem;
+}
+
+.track-table thead th {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: .62rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-nav);
+    position: sticky;
+    top: 0;
+}
+
+.track-table tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.track-table tbody tr:hover { background: var(--bg-hover); }
+
+.cell-flight {
+    font-family: "SF Mono", Consolas, monospace;
+    font-weight: 600;
+    color: var(--text-primary) !important;
+}
+
+.cell-vehicle {
+    font-family: "SF Mono", Consolas, monospace;
+    font-weight: 600;
+    color: var(--text-primary) !important;
+}
+
+.cell-time {
+    font-family: "SF Mono", Consolas, monospace;
+    color: var(--text-muted) !important;
+}
+
+.task-tag {
+    font-size: .6rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+
+.tag-FUEL { background: #eab30822; color: #eab308; }
+.tag-BAG  { background: #22c55e22; color: #22c55e; }
+.tag-TOW  { background: #a855f722; color: #a855f7; }
+.tag-STAIR{ background: #3b82f622; color: #3b82f6; }
+
+/* ── 特殊情况处置面板 ──────────────────── */
+.incident-section {
+    padding: 8px 14px;
+}
+
+.incident-section + .incident-section {
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 10px;
+}
+
+.incident-subtitle {
+    font-size: .68rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: .2px;
+}
+
+.comm-log {
+    background: var(--bg-body);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px;
+    min-height: 60px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.comm-empty, .alert-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .68rem;
+    padding: 12px 0;
+}
+
+.alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ── 车载终端模拟器 ────────────────────── */
+.sim-layout { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; flex: 1; min-height: 0; }
+
+.sim-topbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.sim-topbar-title { font-size: .85rem; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+
+.sim-vehicle-select { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.sim-vtag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; font-size: .72rem; font-weight: 600;
+    border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg-body); color: var(--text-primary);
+    text-decoration: none; transition: all .1s;
+}
+
+.sim-vtag:hover { border-color: var(--accent); background: var(--bg-hover); }
+.sim-vtag-active { background: var(--accent-glow) !important; border-color: var(--accent) !important; }
+
+.sim-main { display: flex; gap: 12px; flex: 1; min-height: 0; }
+.sim-left { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.sim-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.sim-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sim-card-title {
+    font-size: .75rem; font-weight: 700; color: var(--text-primary);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sim-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+
+.sim-info-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sim-info-item:nth-child(odd) { border-right: 1px solid var(--border); }
+.sim-info-item:nth-last-child(-n+2) { border-bottom: none; }
+
+.sim-info-label { display: block; font-size: .62rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .3px; }
+.sim-info-value { display: block; font-size: .82rem; font-weight: 700; color: var(--text-primary); }
+
+.sim-task-card {
+    padding: 14px;
+}
+
+.sim-task-flight { font-size: .95rem; font-weight: 800; color: var(--text-primary); }
+.sim-task-meta { display: flex; gap: 14px; font-size: .75rem; color: var(--text-secondary); margin-top: 4px; }
+.sim-task-time { font-size: .7rem; color: var(--text-muted); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+
+.sim-empty { padding: 24px 14px; text-align: center; color: var(--text-muted); font-size: .75rem; }
+.sim-empty-full { padding: 60px 14px; text-align: center; color: var(--text-muted); font-size: .9rem; }
+
+.sim-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; }
+
+.sim-btn {
+    padding: 8px 6px; font-size: .7rem; font-weight: 600;
+    border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg-body); color: var(--text-primary);
+    cursor: pointer; transition: all .1s; font-family: inherit;
+}
+.sim-btn:hover { border-color: var(--accent); background: var(--bg-hover); }
+.sim-btn-danger { color: var(--red); border-color: var(--red); }
+.sim-btn-danger:hover { background: var(--red); color: #fff; }
+
+.sim-comm-card { display: flex; flex-direction: column; height: 100%; }
+
+.sim-comm-log {
+    flex: 1; overflow-y: auto; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    min-height: 200px;
+}
+
+.sim-comm-empty { text-align: center; color: var(--text-muted); font-size: .72rem; padding: 40px 0; }
+
+.sim-msg { max-width: 85%; padding: 6px 10px; border-radius: 6px; font-size: .75rem; }
+.sim-msg-dispatch { align-self: flex-start; background: var(--accent-glow); border: 1px solid var(--border); }
+.sim-msg-vehicle { align-self: flex-end; background: var(--green-glow); border: 1px solid var(--border); }
+
+.sim-msg-meta { font-size: .6rem; color: var(--text-muted); margin-bottom: 3px; }
+.sim-msg-body { color: var(--text-primary); line-height: 1.4; }
+
+.sim-comm-input {
+    display: flex; gap: 6px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.sim-comm-input input {
+    flex: 1; padding: 7px 10px; font-size: .75rem;
+    border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg-body); color: var(--text-primary);
+    font-family: inherit; outline: none;
+}
+
+.sim-comm-input input:focus { border-color: var(--accent); }
+
+.sim-comm-input button {
+    padding: 7px 14px; font-size: .72rem; font-weight: 600;
+    border: 1px solid var(--accent); border-radius: 5px;
+    background: var(--accent); color: #fff;
+    cursor: pointer; font-family: inherit;
+}
+
+/* ── 调度面板通讯区 ────────────────────── */
+.comm-vehicle-bar {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.comm-vbtn {
+    font-size: .62rem; font-weight: 600;
+    padding: 3px 8px; border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-body); color: var(--text-primary);
+    cursor: pointer; transition: all .1s; font-family: inherit;
+}
+.comm-vbtn:hover { border-color: var(--accent); }
+.comm-vbtn-active { background: var(--accent-glow); border-color: var(--accent); }
+.comm-vbtn .unread-dot {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--red); border-radius: 50%; margin-left: 3px;
+}
+
+.comm-log-box {
+    flex: 1; overflow-y: auto; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+    min-height: 100px; max-height: 180px;
+}
+
+.comm-msg { max-width: 90%; padding: 5px 8px; border-radius: 5px; font-size: .68rem; }
+.comm-msg-dispatch { align-self: flex-start; background: var(--accent-glow); border: 1px solid var(--border); }
+.comm-msg-vehicle { align-self: flex-end; background: var(--green-glow); border: 1px solid var(--border); }
+.comm-msg-meta { font-size: .55rem; color: var(--text-muted); margin-bottom: 2px; }
+.comm-msg-body { color: var(--text-primary); }
+
+.comm-input-row {
+    display: flex; gap: 4px;
+    padding: 6px 10px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.comm-input-row input {
+    flex: 1; padding: 5px 8px; font-size: .68rem;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg-body); color: var(--text-primary);
+    font-family: inherit; outline: none;
+}
+
+.comm-input-row input:focus { border-color: var(--accent); }
+
+.comm-input-row button {
+    padding: 5px 10px; font-size: .65rem; font-weight: 600;
+    border: 1px solid var(--accent); border-radius: 4px;
+    background: var(--accent); color: #fff;
+    cursor: pointer; font-family: inherit;
+}
+
 /* ── 响应式 ────────────────────────────── */
 @media (max-width: 900px) {
     .task-sidebar { width: 250px; }
@@ -800,4 +1371,5 @@ table tbody td:first-child { color: var(--text-primary); font-weight: 600; }
     .dash-frame { flex-direction: column; }
     .task-sidebar { width: 100%; max-height: 300px; border-right: none; border-bottom: 1px solid var(--border); }
     #airport-map { padding: 6px; }
+    .dash-panels { flex-direction: column; }
 }

@@ -50,6 +50,8 @@
             <span>{{ vehicle.region.code if vehicle.region else '--' }}</span>
             {% set vstatus_map = {
                 'IDLE': ('green', '空闲'),
+                'ASSIGNED': ('yellow', '已分配'),
+                'CONFIRMED': ('blue', '已确认'),
                 'BUSY': ('purple', '工作中'),
                 'MAINTENANCE': ('red', '维修中')
             } %}

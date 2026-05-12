@@ -5,7 +5,18 @@
   2. 加载配置
   3. 初始化 db
   4. 注册所有蓝图
+
+运行方式:
+    python app.py
+
+会自动同时启动:
+  - 调度中心 http://localhost:5000
+  - 车载终端模拟器 http://localhost:5001
 """
+import os
+import subprocess
+import sys
+
 from flask import Flask
 from config import Config
 from models import db
@@ -17,6 +28,14 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     db.init_app(app)
+
+    # 跨域支持（车载终端 5001 → 调度中心 5000）
+    @app.after_request
+    def add_cors(response):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        return response
 
     # 注册路由蓝图
     from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, api_bp
@@ -30,5 +49,16 @@ def create_app(config_class=Config):
 
 
 if __name__ == "__main__":
+    # 自动启动车载终端模拟器（绑定车辆 ID=1，独立进程，端口 5001）
+    simulator_proc = subprocess.Popen(
+        [sys.executable, os.path.join(os.path.dirname(__file__), "simulator_app.py"),
+         "-v", "1"],
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+    )
+
     app = create_app()
-    app.run(debug=True)
+    try:
+        app.run(debug=True, use_reloader=False)
+    finally:
+        simulator_proc.terminate()
+        simulator_proc.wait()

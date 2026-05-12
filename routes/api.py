@@ -1,8 +1,10 @@
 """态势图数据 API — 为机场地图提供实时位置数据."""
+from datetime import datetime, timedelta
 from flask import jsonify, request
 from models.vehicle import Vehicle
 from models.flight import Flight
 from models.task import Task
+from models.comm_log import CommunicationLog
 from models import db
 from . import api_bp
 
@@ -26,8 +28,12 @@ VEHICLE_TYPE_ICONS = {
 
 @api_bp.route("/api/map-data")
 def map_data():
-    """返回态势图所需的全部数据."""
-    flights = Flight.query.order_by(Flight.scheduled_at).all()
+    """返回态势图所需的全部数据（仅显示已入位航班）."""
+    now = datetime.utcnow() + timedelta(hours=8)  # 北京时间
+    flights = Flight.query.filter(
+        Flight.arrival_at.isnot(None),
+        Flight.arrival_at <= now,
+    ).order_by(Flight.scheduled_at).all()
     vehicles = Vehicle.query.order_by(Vehicle.type, Vehicle.plate).all()
 
     active_tasks = Task.query.filter(
@@ -130,7 +136,195 @@ def assign_task():
 
     task.vehicle_id = vehicle.id
     task.status = "IN_PROGRESS"
-    vehicle.status = "BUSY"
+    vehicle.status = "ASSIGNED"
+    db.session.commit()
+
+    # 自动向车辆发送任务通知
+    from models.comm_log import CommunicationLog
+    from services.task_generator import TaskGenerator
+    task_type_name = {"FUEL": "加油", "BAG": "行李", "TOW": "牵引", "STAIR": "客梯"}.get(task.task_type, task.task_type)
+    gate = task.flight.gate if task.flight else "--"
+    flight_no = task.flight.flight_no if task.flight else "--"
+    notif = CommunicationLog(
+        vehicle_id=vehicle.id, sender="DISPATCH",
+        content=f"【新任务】{flight_no} {gate} 机位，{task_type_name}任务，请立即前往。",
+        msg_type="TASK",
+    )
+    db.session.add(notif)
     db.session.commit()
 
     return jsonify({"ok": True, "task_id": task.id, "vehicle_id": vehicle.id})
+
+
+@api_bp.route("/api/vehicle/confirm-task", methods=["POST"])
+def confirm_task():
+    """车辆确认接收任务（ASSIGNED → BUSY）."""
+    data = request.get_json()
+    vehicle_id = data.get("vehicle_id")
+    vehicle = db.session.get(Vehicle, vehicle_id)
+    if not vehicle:
+        return jsonify({"ok": False, "error": "车辆不存在"}), 404
+    if vehicle.status != "ASSIGNED":
+        return jsonify({"ok": False, "error": f"车辆状态为 {vehicle.status}，不是已分配状态"}), 400
+
+    vehicle.status = "CONFIRMED"
+    notif = CommunicationLog(
+        vehicle_id=vehicle.id, sender="VEHICLE",
+        content="已确认任务，准备前往。",
+        msg_type="STATUS",
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+    return jsonify({"ok": True, "vehicle_status": "CONFIRMED"})
+
+
+@api_bp.route("/api/vehicle/start-work", methods=["POST"])
+def start_work():
+    """车辆开始执行任务（CONFIRMED → BUSY）."""
+    data = request.get_json()
+    vehicle_id = data.get("vehicle_id")
+    vehicle = db.session.get(Vehicle, vehicle_id)
+    if not vehicle:
+        return jsonify({"ok": False, "error": "车辆不存在"}), 404
+    if vehicle.status != "CONFIRMED":
+        return jsonify({"ok": False, "error": f"车辆状态为 {vehicle.status}，不是已确认状态"}), 400
+
+    vehicle.status = "BUSY"
+    db.session.commit()
+
+    return jsonify({"ok": True, "vehicle_status": "BUSY"})
+
+
+@api_bp.route("/api/comm/send", methods=["POST"])
+def comm_send():
+    """发送通讯消息（调度中心 → 车辆 / 车辆 → 调度中心）."""
+    data = request.get_json()
+    vehicle_id = data.get("vehicle_id")
+    sender = data.get("sender", "").upper()
+    content = (data.get("content") or "").strip()
+    msg_type = data.get("msg_type", "TEXT").upper()
+
+    if not vehicle_id or not content:
+        return jsonify({"ok": False, "error": "缺少 vehicle_id 或 content"}), 400
+    if sender not in ("DISPATCH", "VEHICLE"):
+        return jsonify({"ok": False, "error": "sender 必须是 DISPATCH 或 VEHICLE"}), 400
+    vehicle = db.session.get(Vehicle, vehicle_id)
+    if not vehicle:
+        return jsonify({"ok": False, "error": "车辆不存在"}), 404
+
+    log = CommunicationLog(
+        vehicle_id=vehicle_id, sender=sender,
+        content=content, msg_type=msg_type,
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    return jsonify({"ok": True, "message": log.to_dict()})
+
+
+@api_bp.route("/api/comm/poll")
+def comm_poll():
+    """轮询获取未读消息（车载终端用），支持按车辆过滤."""
+    vehicle_id = request.args.get("vehicle_id", type=int)
+    since = request.args.get("since")
+
+    q = CommunicationLog.query.order_by(CommunicationLog.created_at.asc())
+
+    if vehicle_id:
+        q = q.filter_by(vehicle_id=vehicle_id)
+    if since:
+        q = q.filter(CommunicationLog.created_at > since)
+
+    # 车辆侧轮询时标记调度消息为已读
+    logs = q.all()
+    for log in logs:
+        if log.sender == "DISPATCH" and not log.read:
+            log.read = True
+    db.session.commit()
+
+    return jsonify({"ok": True, "messages": [l.to_dict() for l in logs]})
+
+
+@api_bp.route("/api/comm/history")
+def comm_history():
+    """获取与指定车辆的完整通讯记录（调度面板用）."""
+    vehicle_id = request.args.get("vehicle_id", type=int)
+    since = request.args.get("since")
+
+    q = CommunicationLog.query
+    if vehicle_id:
+        q = q.filter_by(vehicle_id=vehicle_id)
+    if since:
+        q = q.filter(CommunicationLog.created_at > since).order_by(CommunicationLog.created_at.asc())
+    else:
+        q = q.order_by(CommunicationLog.created_at.desc()).limit(50)
+
+    logs = q.all()
+
+    # 调度面板加载时标记车辆消息为已读
+    if vehicle_id:
+        unread = CommunicationLog.query.filter_by(
+            vehicle_id=vehicle_id, sender="VEHICLE", read=False
+        ).all()
+        for log in unread:
+            log.read = True
+        db.session.commit()
+
+    if since:
+        messages = [l.to_dict() for l in logs]
+    else:
+        messages = [l.to_dict() for l in reversed(logs)]
+
+    return jsonify({"ok": True, "messages": messages})
+
+
+@api_bp.route("/api/comm/unread")
+def comm_unread():
+    """获取调度中心未读消息数量（按车辆分组）."""
+    from sqlalchemy import func
+
+    rows = db.session.query(
+        CommunicationLog.vehicle_id,
+        func.count(CommunicationLog.id).label("cnt"),
+    ).filter(
+        CommunicationLog.sender == "VEHICLE",
+        CommunicationLog.read == False,
+    ).group_by(CommunicationLog.vehicle_id).all()
+
+    unread_map = {r.vehicle_id: r.cnt for r in rows}
+
+    result = {}
+    for v in Vehicle.query.all():
+        result[v.id] = {
+            "plate": v.plate,
+            "unread": unread_map.get(v.id, 0),
+        }
+    return jsonify({"ok": True, "unread": result})
+
+
+@api_bp.route("/api/vehicle/task/<int:vehicle_id>")
+def vehicle_active_task(vehicle_id):
+    """返回车辆当前进行中的任务（车载终端轮询用）."""
+    vehicle = db.session.get(Vehicle, vehicle_id)
+    vehicle_status = vehicle.status if vehicle else None
+
+    task = Task.query.filter_by(
+        vehicle_id=vehicle_id, status="IN_PROGRESS"
+    ).first()
+    if not task:
+        return jsonify({"ok": True, "task": None, "vehicle_status": vehicle_status})
+
+    flight = task.flight
+    return jsonify({
+        "ok": True,
+        "vehicle_status": vehicle_status,
+        "task": {
+            "id": task.id,
+            "task_type": task.task_type,
+            "task_type_name": {"FUEL": "加油", "BAG": "行李", "TOW": "牵引", "STAIR": "客梯"}.get(task.task_type, task.task_type),
+            "flight_no": flight.flight_no if flight else None,
+            "gate": flight.gate if flight else None,
+            "scheduled_start": task.scheduled_start.strftime("%H:%M") if task.scheduled_start else None,
+        },
+    })
