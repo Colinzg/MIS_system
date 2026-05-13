@@ -162,7 +162,7 @@ function autoAssign() {
     })
     .then(function(resp) {
         if (resp.ok) {
-            showFlash('success', '已分配 ' + resp.assigned + ' 个任务，失败 ' + resp.errors + ' 个');
+            showFlash('success', '已分配 ' + resp.assigned + ' 个任务，' + resp.errors + ' 个待资源空闲');
             setTimeout(function() { smoothReload(); }, 1000);
         } else {
             showFlash('error', '自动分配失败');

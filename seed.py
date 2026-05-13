@@ -9,8 +9,8 @@
 将会清空现有数据并插入:
   - 2 个区域（A / B），各含 10 个停机位（A01-A10 / B01-B10）
   - 停车场编码: A-1（A 区）、B-1（B 区）
-  - 9 辆车（每种车型 2-3 辆），停放在指定停车场
-  - 6 个模拟航班，分配在各停机位
+  - 17 辆车（每种车型 3-5 辆），停放在指定停车场
+  - 12 个模拟航班，分配在各停机位
   - 各航班根据 aircraft_type 自动生成保障任务
   - A320 / B777 的 AircraftResource 规则
   - 机场路网节点与边
@@ -43,24 +43,46 @@ def seed():
 
         # ── 车辆（停放于各区域停车场，停车场编码 A-1 / B-1） ──
         vehicles = [
+            # FUEL 加油车 ×4（每区2辆）
             Vehicle(plate="民航-B1021", type="FUEL", region_id=regions[0].id,
                     attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 20}),
             Vehicle(plate="民航-B1022", type="FUEL", region_id=regions[1].id,
                     attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 20}),
+            Vehicle(plate="民航-B1030", type="FUEL", region_id=regions[0].id,
+                    attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 20}),
+            Vehicle(plate="民航-B1031", type="FUEL", region_id=regions[1].id,
+                    attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 20}),
+            # BAG 行李车 ×5（A区3辆，B区2辆）
             Vehicle(plate="民航-B1023", type="BAG", region_id=regions[0].id,
                     attributes={"service_mode": "ONE_TO_MANY", "baggage_capacity": 50, "base_duration_min": 15}),
             Vehicle(plate="民航-B1024", type="BAG", region_id=regions[1].id,
                     attributes={"service_mode": "ONE_TO_MANY", "baggage_capacity": 50, "base_duration_min": 15}),
             Vehicle(plate="民航-B1025", type="BAG", region_id=regions[0].id,
                     attributes={"service_mode": "ONE_TO_MANY", "baggage_capacity": 50, "base_duration_min": 15}),
+            Vehicle(plate="民航-B1032", type="BAG", region_id=regions[0].id,
+                    attributes={"service_mode": "ONE_TO_MANY", "baggage_capacity": 50, "base_duration_min": 15}),
+            Vehicle(plate="民航-B1033", type="BAG", region_id=regions[1].id,
+                    attributes={"service_mode": "ONE_TO_MANY", "baggage_capacity": 50, "base_duration_min": 15}),
+            # TOW 牵引车 ×4（每区2辆）
             Vehicle(plate="民航-B1026", type="TOW", region_id=regions[0].id,
                     attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 10}),
             Vehicle(plate="民航-B1027", type="TOW", region_id=regions[1].id,
                     attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 10}),
+            Vehicle(plate="民航-B1034", type="TOW", region_id=regions[0].id,
+                    attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 10}),
+            Vehicle(plate="民航-B1035", type="TOW", region_id=regions[1].id,
+                    attributes={"service_mode": "ONE_TO_ONE", "base_duration_min": 10}),
+            # STAIR 客梯车 ×4（每区2辆）
             Vehicle(plate="民航-B1028", type="STAIR", region_id=regions[0].id,
                     attributes={"service_mode": "ONE_TO_ONE", "max_height_m": 5.5,
                                 "compatible_aircraft": ["A320", "B737"], "base_duration_min": 5}),
             Vehicle(plate="民航-B1029", type="STAIR", region_id=regions[1].id,
+                    attributes={"service_mode": "ONE_TO_ONE", "max_height_m": 6.5,
+                                "compatible_aircraft": ["A320", "B737", "B777"], "base_duration_min": 5}),
+            Vehicle(plate="民航-B1036", type="STAIR", region_id=regions[0].id,
+                    attributes={"service_mode": "ONE_TO_ONE", "max_height_m": 5.5,
+                                "compatible_aircraft": ["A320", "B737"], "base_duration_min": 5}),
+            Vehicle(plate="民航-B1037", type="STAIR", region_id=regions[1].id,
                     attributes={"service_mode": "ONE_TO_ONE", "max_height_m": 6.5,
                                 "compatible_aircraft": ["A320", "B737", "B777"], "base_duration_min": 5}),
         ]
@@ -109,7 +131,7 @@ def seed():
         db.session.add_all(edges)
         db.session.flush()
 
-        # ── 航班（未来3小时内，间隔约30分钟） ────
+        # ── 航班（未来6小时内，间隔约30分钟） ────
         now = datetime.utcnow() + timedelta(hours=8)  # 北京时间 (UTC+8)
         # 首班约10分钟后，之后每30分钟一班
         # 飞机提前约40~50分钟到达机位，之后开始保障作业
@@ -120,6 +142,12 @@ def seed():
             ("3U8888", "四川航空", "A320", now + timedelta(hours=1, minutes=40), "B02", 40),
             ("HU7205", "海南航空", "B777", now + timedelta(hours=2, minutes=10), "A07", 50),
             ("ZH9102", "深圳航空", "A320", now + timedelta(hours=2, minutes=40), "B08", 40),
+            ("MF8123", "厦门航空", "B777", now + timedelta(hours=3, minutes=10), "A05", 50),
+            ("CA8899", "中国国航", "A320", now + timedelta(hours=3, minutes=40), "B06", 40),
+            ("CZ6622", "南方航空", "B777", now + timedelta(hours=4, minutes=10), "A09", 50),
+            ("3U9999", "四川航空", "A320", now + timedelta(hours=4, minutes=40), "B04", 40),
+            ("HU5368", "海南航空", "A320", now + timedelta(hours=5, minutes=10), "A06", 40),
+            ("MU7118", "东方航空", "B777", now + timedelta(hours=5, minutes=40), "B10", 50),
         ]
         flights = [
             Flight(flight_no=fn, airline=al, aircraft_type=at,
