@@ -1,1 +1,9 @@
+# 虚拟环境
 venv/
+.env/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
