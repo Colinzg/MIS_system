@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}工作手册 — 无锡硕放机场地面车辆调度系统{% endblock %}
+{% block content %}
+
+{% set vtype_icons = {'FUEL': '⛽', 'BAG': '🧳', 'TOW': '🚜', 'STAIR': '🪜'} %}
+{% set vtype_colors = {'FUEL': '#eab308', 'BAG': '#22c55e', 'TOW': '#a855f7', 'STAIR': '#3b82f6'} %}
+
+<div class="wiki-wrap">
+
+  {# ═══════════ 左侧 TOC 导航 ═══════════ #}
+  <nav class="wiki-toc" id="wikiToc">
+    <div class="toc-header">
+      <span class="toc-title">📖 工作手册</span>
+    </div>
+
+    <div class="toc-section">
+      <div class="toc-category" onclick="toggleTocCat(this)">
+        <span class="toc-cat-icon">✈️</span>
+        <span class="toc-cat-label">飞机</span>
+        <span class="toc-cat-arrow">▾</span>
+      </div>
+      <div class="toc-items">
+        {% for ac in known_aircraft %}
+        {% set s = aircraft_specs.get(ac, {}) %}
+        <a class="toc-link" href="#ac-{{ ac }}">{{ s.get('name', ac) }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="toc-section">
+      <div class="toc-category" onclick="toggleTocCat(this)">
+        <span class="toc-cat-icon">🚛</span>
+        <span class="toc-cat-label">车辆</span>
+        <span class="toc-cat-arrow">▾</span>
+      </div>
+      <div class="toc-items">
+        {% for code, spec in vehicle_specs.items() %}
+        <a class="toc-link" href="#v-{{ code }}">{{ spec.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="toc-footer">
+      <a href="{{ url_for('dashboard.dashboard') }}" class="toc-back">← 返回调度看板</a>
+    </div>
+  </nav>
+
+  {# ═══════════ 右侧内容区 ═══════════ #}
+  <main class="wiki-content">
+
+    {# ── 页面标题 ── #}
+    <div class="wiki-page-header">
+      <h1 class="wiki-title">工作手册</h1>
+      <div class="wiki-subtitle">无锡硕放机场 · 地面服务车辆与机型技术手册</div>
+    </div>
+
+    {# ═══════════ 一、飞机 ═══════════ #}
+    <section class="wiki-chapter">
+      <h2 class="chapter-title" id="aircraft">✈️ 飞机</h2>
+      <p class="chapter-desc">以下列出本场运行的主要机型及其技术参数与保障需求。</p>
+
+      {% for ac in known_aircraft %}
+      {% set spec = aircraft_specs.get(ac, {}) %}
+      {% set rules = aircraft_rules.get(ac, []) %}
+      <article class="wiki-article" id="ac-{{ ac }}">
+        <div class="article-head">
+          <h3 class="article-title">{{ spec.get('name', ac) }}</h3>
+          <span class="article-code">{{ ac }}</span>
+        </div>
+
+        {# ── 信息框（Infobox） ── #}
+        {% if spec %}
+        <div class="infobox">
+          <div class="infobox-title">{{ spec.get('image_label', spec.name) }}</div>
+          <table class="infobox-table">
+            <tr><th>制造商</th><td>{{ spec.manufacturer }}</td></tr>
+            <tr><th>类型</th><td>{{ spec.type }}</td></tr>
+            <tr><th>长度</th><td>{{ spec.length }}</td></tr>
+            <tr><th>翼展</th><td>{{ spec.wingspan }}</td></tr>
+            <tr><th>高度</th><td>{{ spec.height }}</td></tr>
+            <tr><th>最大起飞重量</th><td>{{ spec.max_takeoff_weight }}</td></tr>
+            <tr><th>最大着陆重量</th><td>{{ spec.max_landing_weight }}</td></tr>
+            <tr><th>航程</th><td>{{ spec.range }}</td></tr>
+            <tr><th>巡航速度</th><td>{{ spec.cruise_speed }}</td></tr>
+            <tr><th>座位数</th><td>{{ spec.seats }}</td></tr>
+            <tr><th>发动机选项</th><td>{{ spec.engine_options }}</td></tr>
+          </table>
+        </div>
+        {% endif %}
+
+        {# ── 正文 ── #}
+        <div class="article-body">
+          {% if spec %}
+          <p>{{ spec.description }}</p>
+          {% endif %}
+
+          {# ── 保障需求表 ── #}
+          {% if rules %}
+          <div class="article-subsection">
+            <h4 class="subsection-title">保障车辆需求</h4>
+            <table class="wiki-table">
+              <thead>
+                <tr>
+                  <th style="width:60%">车辆类型</th>
+                  <th style="width:40%">所需数量</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rules %}
+                <tr>
+                  <td>
+                    <span class="vtype-tag" style="border-color:{{ vtype_colors.get(r.required_vehicle_type, 'var(--border)') }}">
+                      {{ vtype_icons.get(r.required_vehicle_type, '') }}
+                      {{ type_names.get(r.required_vehicle_type, r.required_vehicle_type) }}
+                    </span>
+                  </td>
+                  <td><span class="qty-badge">{{ r.quantity }} 辆</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="article-subsection">
+            <p class="note-text">暂未配置该机型的保障规则。</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="article-clear"></div>
+      </article>
+      {% endfor %}
+    </section>
+
+    {# ═══════════ 二、车辆 ═══════════ #}
+    <section class="wiki-chapter">
+      <h2 class="chapter-title" id="vehicles">🚛 车辆</h2>
+      <p class="chapter-desc">以下列出本场配备的各型地面服务车辆及其技术参数。</p>
+
+      {% for code, spec in vehicle_specs.items() %}
+      {% set info = vtype_info.get(code, {}) %}
+      <article class="wiki-article" id="v-{{ code }}">
+        <div class="article-head">
+          <h3 class="article-title">{{ spec.name }}</h3>
+          <span class="article-code">{{ code }}</span>
+        </div>
+
+        {# ── 信息框（Infobox） ── #}
+        <div class="infobox">
+          <div class="infobox-title">{{ spec.name }}</div>
+          <table class="infobox-table">
+            <tr><th>车型代码</th><td>{{ spec.code }}</td></tr>
+            <tr><th>服务模式</th><td>{{ spec.service_mode }}</td></tr>
+            <tr><th>基准作业时长</th><td>{{ spec.base_duration }}</td></tr>
+            <tr><th>作业人员</th><td>{{ spec.crew }}</td></tr>
+            {% if spec.capacity %}<tr><th>容量/能力</th><td>{{ spec.capacity }}</td></tr>{% endif %}
+            {% if spec.max_height %}<tr><th>最大升降高度</th><td>{{ spec.max_height }}</td></tr>{% endif %}
+            {% if info %}
+            <tr><th>在册数量</th><td>{{ info.total }} 辆</td></tr>
+            {% endif %}
+          </table>
+        </div>
+
+        {# ── 正文 ── #}
+        <div class="article-body">
+          <p>{{ spec.description }}</p>
+
+          {% if info and info.vehicles %}
+          <div class="article-subsection">
+            <h4 class="subsection-title">当前车队状态</h4>
+            <table class="wiki-table">
+              <thead>
+                <tr>
+                  <th>车牌号</th>
+                  <th>所在区域</th>
+                  <th>当前状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for v in info.vehicles %}
+                <tr>
+                  <td class="cell-plate">{{ v.plate }}</td>
+                  <td>{{ v.region.code if v.region else '--' }}</td>
+                  <td>
+                    {% set sc = {'IDLE': 'green', 'ASSIGNED': 'yellow', 'CONFIRMED': 'blue', 'BUSY': 'purple', 'MAINTENANCE': 'yellow'} %}
+                    <span class="indicator indicator-{{ sc.get(v.status, 'gray') }}">
+                      {{- status_names.get(v.status, v.status) -}}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="article-subsection">
+            <p class="note-text">当前暂无该车型的在册车辆。</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="article-clear"></div>
+      </article>
+      {% endfor %}
+    </section>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleTocCat(el) {
+  el.classList.toggle('collapsed');
+  const items = el.nextElementSibling;
+  if (items) {
+    items.style.display = items.style.display === 'none' ? '' : 'none';
+  }
+}
+
+// 高亮当前阅读的 TOC 条目
+const tocLinks = document.querySelectorAll('.toc-link');
+const articles = document.querySelectorAll('.wiki-article');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      tocLinks.forEach(l => l.classList.remove('active'));
+      const id = entry.target.getAttribute('id');
+      const link = document.querySelector(`.toc-link[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px' });
+articles.forEach(a => observer.observe(a));
+</script>
+{% endblock %}

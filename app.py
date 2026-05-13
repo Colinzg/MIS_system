@@ -38,11 +38,12 @@ def create_app(config_class=Config):
         return response
 
     # 注册路由蓝图
-    from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, api_bp
+    from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, manual_bp, api_bp
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(schedule_bp)
     app.register_blueprint(vehicles_bp)
     app.register_blueprint(maintenance_bp)
+    app.register_blueprint(manual_bp)
     app.register_blueprint(api_bp)
 
     return app
