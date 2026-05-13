@@ -121,8 +121,7 @@ function onDrop(e) {
     .then(function(resp) {
         if (resp.ok) {
             showFlash('success', '已分配 ' + veh.vehicle_plate + ' → 任务 #' + taskId);
-            sessionStorage.setItem('filterType', document.getElementById('filterType').value);
-            setTimeout(function() { location.reload(); }, 800);
+            setTimeout(function() { smoothReload(); }, 800);
         } else {
             showFlash('error', resp.error || '分配失败');
         }
@@ -164,7 +163,7 @@ function autoAssign() {
     .then(function(resp) {
         if (resp.ok) {
             showFlash('success', '已分配 ' + resp.assigned + ' 个任务，失败 ' + resp.errors + ' 个');
-            setTimeout(function() { location.reload(); }, 1000);
+            setTimeout(function() { smoothReload(); }, 1000);
         } else {
             showFlash('error', '自动分配失败');
             btn.disabled = false;
@@ -178,6 +177,83 @@ function autoAssign() {
     });
 }
 
+/* ── 平滑刷新（AJAX 局部替换，避免整页闪白） ── */
+function smoothReload() {
+    var frame = document.querySelector('.dash-frame');
+    var bar = document.querySelector('.vtype-bar');
+    if (!frame) { location.reload(); return; }
+
+    // 保存当前状态
+    saveExpandState();
+    var filterVal = document.getElementById('filterType').value;
+
+    // 淡出
+    frame.style.transition = 'opacity .25s ease';
+    bar.style.transition = 'opacity .25s ease';
+    frame.style.opacity = '0.3';
+    bar.style.opacity = '0.3';
+
+    fetch(window.location.href)
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+
+            // 局部替换三个区域
+            bar.innerHTML = doc.querySelector('.vtype-bar').innerHTML;
+            document.querySelector('.task-sidebar .sidebar-inner').innerHTML =
+                doc.querySelector('.task-sidebar .sidebar-inner').innerHTML;
+            document.querySelector('.dash-panels').innerHTML =
+                doc.querySelector('.dash-panels').innerHTML;
+
+            // 刷新态势地图
+            renderAirportMap('airport-map');
+
+            // 恢复筛选与展开状态
+            document.getElementById('filterType').value = filterVal;
+            filterTasks();
+            restoreExpandState();
+
+            // 淡入
+            frame.style.opacity = '1';
+            bar.style.opacity = '1';
+        })
+        .catch(function() {
+            // 网络失败时降级为硬刷新
+            location.reload();
+        });
+}
+
+/* ── 展开状态持久化 ──────────────────────── */
+function saveExpandState() {
+    var expanded = [];
+    document.querySelectorAll('.fcard').forEach(function(c) {
+        var body = c.querySelector('.fcard-body');
+        if (body.style.display === 'block') {
+            expanded.push(c.dataset.flightNo);
+        }
+    });
+    if (expanded.length) {
+        sessionStorage.setItem('expandedFlights', JSON.stringify(expanded));
+    }
+}
+
+function restoreExpandState() {
+    var raw = sessionStorage.getItem('expandedFlights');
+    if (!raw) return;
+    var expanded;
+    try { expanded = JSON.parse(raw); } catch(_) { return; }
+    if (!Array.isArray(expanded) || !expanded.length) return;
+    document.querySelectorAll('.fcard').forEach(function(c) {
+        if (expanded.indexOf(c.dataset.flightNo) !== -1) {
+            var body = c.querySelector('.fcard-body');
+            var arrow = c.querySelector('.fcard-arrow');
+            body.style.display = 'block';
+            arrow.textContent = '▼';
+        }
+    });
+    sessionStorage.removeItem('expandedFlights');
+}
+
 /* ── 页面初始化 ─────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
     renderAirportMap('airport-map');
@@ -185,4 +261,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (savedType) document.getElementById('filterType').value = savedType;
     if (savedType) filterTasks();
     sessionStorage.removeItem('filterType');
+    restoreExpandState();
 });
+
+/* 页面刷新前保存展开状态 */
+window.addEventListener('beforeunload', saveExpandState);

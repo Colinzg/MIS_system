@@ -89,7 +89,7 @@
                 {% set urg_cls = 'urg-red' if minutes_left < 30 else ('urg-yellow' if minutes_left < 60 else 'urg-green') %}
                 {% set total = fg.tasks | length %}
                 {% set assigned = fg.tasks | selectattr('vehicle_id') | list | length %}
-                <div class="fcard {{ urg_cls }}" data-gate="{{ flight.gate or '' }}">
+                <div class="fcard {{ urg_cls }}" data-gate="{{ flight.gate or '' }}" data-flight-no="{{ flight.flight_no }}">
                     <div class="fcard-header" onclick="toggleFlight(this)">
                         <div class="fcard-top">
                             <span class="fcard-acft">{{ flight.aircraft_type or '--' }}<span class="fcard-gate">· {{ flight.gate or '--' }}</span></span>
