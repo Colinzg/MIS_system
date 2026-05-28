@@ -1,0 +1,37 @@
+{
+  "description": "机型保障规则：定义每种飞机机型所需的地面服务车辆类型及数量。规则可由 aircraft_catalog 和 vehicle_catalog 的技术参数交叉推导，再经人工核定。",
+
+  "derivation_notes": {
+    "BAG_quantity": "飞机 baggage_estimate ÷ 行李车单次运力 items_per_trip，向上取整并考虑时间窗口",
+    "STAIR_quantity": "飞机 cabin_doors 数量决定所需客梯车数量，通常每个使用中的舱门配备一辆",
+    "TOW_class": "飞机 max_takeoff_t 决定所需牵引车推力等级",
+    "STAIR_height": "飞机 door_height_m 必须 ≤ 客梯车 max_height_m"
+  },
+
+  "rules": {
+    "A320": [
+      { "vehicle_type": "FUEL",  "quantity": 1, "note": "标准加油车" },
+      { "vehicle_type": "BAG",   "quantity": 2, "note": "165件行李 ÷ 50件/车 ≈ 4趟，2辆车各跑2趟" },
+      { "vehicle_type": "TOW",   "quantity": 1, "note": "标准牵引车，起飞重量78t < 100t" },
+      { "vehicle_type": "STAIR", "quantity": 1, "note": "舱门高度3.5m，标准客梯车(5.5m)可满足" }
+    ],
+    "B737": [
+      { "vehicle_type": "FUEL",  "quantity": 1, "note": "标准加油车" },
+      { "vehicle_type": "BAG",   "quantity": 2, "note": "175件行李 ÷ 50件/车 ≈ 4趟" },
+      { "vehicle_type": "TOW",   "quantity": 1, "note": "标准牵引车，起飞重量79t < 100t" },
+      { "vehicle_type": "STAIR", "quantity": 1, "note": "舱门高度3.4m，标准客梯车(5.5m)可满足" }
+    ],
+    "B777": [
+      { "vehicle_type": "FUEL",  "quantity": 1, "note": "超大容量加油车或标准加油车多次加注" },
+      { "vehicle_type": "BAG",   "quantity": 3, "note": "335件行李 ÷ 50件/车 ≈ 7趟，3辆车各跑2-3趟" },
+      { "vehicle_type": "TOW",   "quantity": 1, "note": "重型牵引车，起飞重量351t > 100t，需30t推力级" },
+      { "vehicle_type": "STAIR", "quantity": 2, "note": "舱门高度5.8m，需高管客梯车(6.5m)，8个舱门至少配2辆" }
+    ],
+    "A330": [
+      { "vehicle_type": "FUEL",  "quantity": 1, "note": "大容量加油车" },
+      { "vehicle_type": "BAG",   "quantity": 3, "note": "300件行李 ÷ 50件/车 = 6趟" },
+      { "vehicle_type": "TOW",   "quantity": 1, "note": "重型牵引车，起飞重量242t > 100t" },
+      { "vehicle_type": "STAIR", "quantity": 2, "note": "舱门高度5.3m，需高管客梯车(6.5m)，8个舱门至少配2辆" }
+    ]
+  }
+}

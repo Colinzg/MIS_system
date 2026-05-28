@@ -50,8 +50,9 @@ class TestScheduler:
         assert isinstance(result, dict)
         assert "tasks" in result
 
-    def test_schedule_nonexistent_flight(self):
+    def test_schedule_nonexistent_flight(self, app):
         """调度不存在的航班应抛出 ValueError."""
-        scheduler = Scheduler()
-        with pytest.raises(ValueError):
-            scheduler.schedule_for_flight(9999)
+        with app.app_context():
+            scheduler = Scheduler()
+            with pytest.raises(ValueError):
+                scheduler.schedule_for_flight(9999)

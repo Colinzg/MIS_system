@@ -1,0 +1,126 @@
+[
+  {
+    "type": "A320",
+    "name": "Airbus A320",
+    "manufacturer": "空中客车 (Airbus)",
+    "category": "单通道窄体客机",
+    "dimensions": {
+      "length_m": 37.57,
+      "wingspan_m": 35.80,
+      "height_m": 11.76,
+      "door_height_m": 3.5
+    },
+    "weight": {
+      "max_takeoff_t": 78.0,
+      "max_landing_t": 66.0
+    },
+    "performance": {
+      "range_km": 6100,
+      "cruise_speed": "Mach 0.78"
+    },
+    "capacity": {
+      "seats": "150-180",
+      "typical_passengers": 165,
+      "baggage_estimate": 165
+    },
+    "technical": {
+      "fuel_capacity_l": 27000,
+      "engine_options": "CFM56-5B / IAE V2500",
+      "cabin_doors": 4
+    },
+    "description": "Airbus A320 是空中客车公司研制的单通道双发窄体客机，是航空史上最畅销的机型之一。A320 系列包括 A318、A319、A320、A321 四个子型号，覆盖 100–240 座级。作为全球首款采用电传操纵（Fly-by-Wire）系统的量产客机，A320 在飞行安全性和操控性方面树立了新的标准。"
+  },
+  {
+    "type": "B737",
+    "name": "Boeing 737",
+    "manufacturer": "波音 (Boeing)",
+    "category": "单通道窄体客机",
+    "dimensions": {
+      "length_m": 39.50,
+      "wingspan_m": 35.80,
+      "height_m": 12.50,
+      "door_height_m": 3.4
+    },
+    "weight": {
+      "max_takeoff_t": 79.0,
+      "max_landing_t": 66.4
+    },
+    "performance": {
+      "range_km": 5765,
+      "cruise_speed": "Mach 0.79"
+    },
+    "capacity": {
+      "seats": "162-189",
+      "typical_passengers": 175,
+      "baggage_estimate": 175
+    },
+    "technical": {
+      "fuel_capacity_l": 26000,
+      "engine_options": "CFM56-7B",
+      "cabin_doors": 4
+    },
+    "description": "Boeing 737 是波音公司生产的双发单通道窄体客机，是全球累计产量最高的喷气式客机系列。737 NG（Next Generation）系列包括 737-600/700/800/900 四个型号，其中 737-800 是最畅销的型号。该机型以可靠性和经济性著称，广泛用于中短程航线。"
+  },
+  {
+    "type": "B777",
+    "name": "Boeing 777",
+    "manufacturer": "波音 (Boeing)",
+    "category": "双通道宽体客机",
+    "dimensions": {
+      "length_m": 73.90,
+      "wingspan_m": 64.80,
+      "height_m": 18.50,
+      "door_height_m": 5.8
+    },
+    "weight": {
+      "max_takeoff_t": 351.0,
+      "max_landing_t": 251.0
+    },
+    "performance": {
+      "range_km": 13650,
+      "cruise_speed": "Mach 0.84"
+    },
+    "capacity": {
+      "seats": "301-368",
+      "typical_passengers": 335,
+      "baggage_estimate": 335
+    },
+    "technical": {
+      "fuel_capacity_l": 181280,
+      "engine_options": "GE90-115B",
+      "cabin_doors": 8
+    },
+    "description": "Boeing 777 是波音公司生产的双发双通道宽体客机，是全球最大的双发客机。777-300ER 是 777 系列中最畅销的型号，搭载 GE90 系列发动机——全球推力最大的涡扇发动机。该机型以超长航程能力和燃油经济性著称，广泛用于跨洋航线。"
+  },
+  {
+    "type": "A330",
+    "name": "Airbus A330",
+    "manufacturer": "空中客车 (Airbus)",
+    "category": "双通道宽体客机",
+    "dimensions": {
+      "length_m": 63.69,
+      "wingspan_m": 60.30,
+      "height_m": 16.83,
+      "door_height_m": 5.3
+    },
+    "weight": {
+      "max_takeoff_t": 242.0,
+      "max_landing_t": 187.0
+    },
+    "performance": {
+      "range_km": 11750,
+      "cruise_speed": "Mach 0.82"
+    },
+    "capacity": {
+      "seats": "277-440",
+      "typical_passengers": 300,
+      "baggage_estimate": 300
+    },
+    "technical": {
+      "fuel_capacity_l": 139090,
+      "engine_options": "Trent 700 / CF6-80E1",
+      "cabin_doors": 8
+    },
+    "description": "Airbus A330 是空中客车公司研制的双发双通道宽体客机，与四发的 A340 同时期开发。A330-300 是基础型号，具有优秀的燃油效率和舒适的客舱环境。A330neo 系列（-800/-900）配备了新一代发动机和鲨鳍小翼，进一步提升了经济性。"
+  }
+]

@@ -5,9 +5,9 @@
   - 创建: 行驶路径（含路径点序列、预估时间）
 
 数据流向: 路径计算 → 调度规划 (派单时参考) + 司机终端 (导航)
+
+待实现: Dijkstra / A* 最短路径，届时需导入 models.road_network。
 """
-from models import db
-from models.road_network import RoadNode, RoadEdge
 
 
 class PathCalculator:

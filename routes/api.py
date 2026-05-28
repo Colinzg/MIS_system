@@ -1,4 +1,10 @@
-"""态势图数据 API — 为机场地图提供实时位置数据."""
+"""态势图数据 API — 为机场地图提供实时位置数据.
+
+停机位和停车场坐标从 data/airport_layout.json 加载，
+与种子数据共享同一数据源。
+"""
+import json
+import os
 from datetime import datetime, timedelta
 from flask import jsonify, request
 from models.vehicle import Vehicle
@@ -8,22 +14,42 @@ from models.comm_log import CommunicationLog
 from models import db
 from . import api_bp
 
-# 停机位坐标 — A区左，B区右，中间为停车场+塔台
-GATE_COORDS = {}
-for i in range(1, 9):
-    GATE_COORDS[f"A{i:02d}"] = {"x": 30 + (i - 1) * 52, "y": 102, "region": "A"}
-for i in range(1, 9):
-    GATE_COORDS[f"B{i:02d}"] = {"x": 606 + (i - 1) * 52, "y": 102, "region": "B"}
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 
-# 停车场坐标 — 塔台两侧
-PARKING_COORDS = {
-    "A": {"x": 445, "y": 35, "label": "A-1"},
-    "B": {"x": 575, "y": 35, "label": "B-1"},
-}
+
+def _load_layout():
+    path = os.path.join(DATA_DIR, "airport_layout.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _build_gate_coords():
+    """从 airport_layout.json 加载停机位坐标."""
+    layout = _load_layout()
+    coords = {}
+    for region_code, gates in layout["gates"].items():
+        for g in gates:
+            coords[g["code"]] = {"x": g["x"], "y": g["y"], "region": region_code}
+    return coords
+
+
+def _build_parking_coords():
+    """从 airport_layout.json 加载停车场坐标."""
+    layout = _load_layout()
+    coords = {}
+    for pa in layout["parking_areas"]:
+        coords[pa["region"]] = {"x": pa["x"], "y": pa["y"], "label": pa["code"]}
+    return coords
+
+
+GATE_COORDS = _build_gate_coords()
+PARKING_COORDS = _build_parking_coords()
 
 VEHICLE_TYPE_ICONS = {
     "FUEL": "⛽", "BAG": "🧳", "TOW": "🚜", "STAIR": "🪜",
 }
+
+TASK_TYPE_NAMES = {"FUEL": "加油", "BAG": "行李", "TOW": "牵引", "STAIR": "客梯"}
 
 
 @api_bp.route("/api/map-data")
@@ -140,14 +166,11 @@ def assign_task():
     db.session.commit()
 
     # 自动向车辆发送任务通知
-    from models.comm_log import CommunicationLog
-    from services.task_generator import TaskGenerator
-    task_type_name = {"FUEL": "加油", "BAG": "行李", "TOW": "牵引", "STAIR": "客梯"}.get(task.task_type, task.task_type)
     gate = task.flight.gate if task.flight else "--"
     flight_no = task.flight.flight_no if task.flight else "--"
     notif = CommunicationLog(
         vehicle_id=vehicle.id, sender="DISPATCH",
-        content=f"【新任务】{flight_no} {gate} 机位，{task_type_name}任务，请立即前往。",
+        content=f"【新任务】{flight_no} {gate} 机位，{TASK_TYPE_NAMES.get(task.task_type, task.task_type)}任务，请立即前往。",
         msg_type="TASK",
     )
     db.session.add(notif)
@@ -358,7 +381,7 @@ def vehicle_active_task(vehicle_id):
         "task": {
             "id": task.id,
             "task_type": task.task_type,
-            "task_type_name": {"FUEL": "加油", "BAG": "行李", "TOW": "牵引", "STAIR": "客梯"}.get(task.task_type, task.task_type),
+            "task_type_name": TASK_TYPE_NAMES.get(task.task_type, task.task_type),
             "flight_no": flight.flight_no if flight else None,
             "gate": flight.gate if flight else None,
             "scheduled_start": task.scheduled_start.strftime("%H:%M") if task.scheduled_start else None,

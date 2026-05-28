@@ -11,27 +11,14 @@
   4. 任务依赖 — 前置任务未完成时暂不分配
   5. 满载约束 — 需回补的车辆在回补完成前不可分配
 """
-from datetime import datetime
 from models import db
 from models.vehicle import Vehicle
 from models.task import Task
 from models.flight import Flight
-from services.vehicle_manager import VehicleManager
 
 
 class Scheduler:
     """调度器：封装多约束车辆分配算法."""
-
-    # 每种任务的标准作业时长（分钟），后续可移至 AircraftResource 或配置
-    DURATIONS = {
-        "FUEL": 15,
-        "BAG": 20,
-        "TOW": 10,
-        "STAIR": 10,
-        "GPU": 15,
-        "ACU": 15,
-        "BUS": 10,
-    }
 
     def schedule_for_flight(self, flight_id: int) -> dict:
         """为指定航班的 PENDING 任务按约束链分配车辆.
@@ -134,8 +121,7 @@ class Scheduler:
             # 找到所有当前无未满足依赖的任务
             ready = [t for t in remaining
                      if t.depends_on is None
-                     or db.session.get(Task, t.depends_on) is None
-                     or db.session.get(Task, t.depends_on).status == "COMPLETED"]
+                     or self._dependency_met(t.depends_on)]
             if not ready:
                 # 有环或依赖不可达，直接追加剩余任务
                 sorted_tasks.extend(remaining)

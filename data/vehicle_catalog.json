@@ -1,0 +1,147 @@
+[
+  {
+    "type": "FUEL",
+    "name": "加油车",
+    "service_mode": "ONE_TO_ONE",
+    "base_duration_min": 20,
+    "crew": "1-2 人",
+    "capacity": {
+      "label": "5,000-20,000 L",
+      "typical_l": 15000
+    },
+    "compatibility": {
+      "all_aircraft": true,
+      "note": "标准加油车适用所有常见机型，大型机需大容量油车"
+    },
+    "constraints": {
+      "requires_refill": false,
+      "refill_duration_min": 10
+    },
+    "description": "加油车是为飞机提供航空燃油加注服务的特种车辆。作业期间车辆与飞机一对一绑定，通过软管连接飞机的加油接口进行加注。加油车需具备防静电、防火花等安全特性，操作人员需持有相应的危险品操作资质。"
+  },
+  {
+    "type": "BAG",
+    "name": "行李车",
+    "service_mode": "ONE_TO_MANY",
+    "base_duration_min": 15,
+    "crew": "1 人",
+    "capacity": {
+      "label": "50 件/车",
+      "items_per_trip": 50
+    },
+    "compatibility": {
+      "all_aircraft": true,
+      "note": "行李车通用，不区分机型"
+    },
+    "constraints": {
+      "requires_unload": true,
+      "unload_duration_min": 10
+    },
+    "description": "行李车用于在停机位与行李分拣区之间运输旅客行李。采用一对多服务模式，一辆车可依次服务多个航班。行李车通常配备拖斗，每个拖斗可装载约 50 件标准行李。装卸过程需与行李传送带系统配合操作。"
+  },
+  {
+    "type": "TOW",
+    "name": "牵引车",
+    "service_mode": "ONE_TO_ONE",
+    "base_duration_min": 10,
+    "crew": "1 人",
+    "capacity": {
+      "label": "牵引力 15-30 t"
+    },
+    "compatibility": {
+      "all_aircraft": false,
+      "rules": [
+        { "max_aircraft_weight_t": 100, "towing_class": "标准型", "towing_force_t": 15 },
+        { "max_aircraft_weight_t": 400, "towing_class": "重型", "towing_force_t": 30 }
+      ],
+      "note": "需根据飞机最大起飞重量匹配对应推力等级的牵引车"
+    },
+    "constraints": {
+      "last_service": true,
+      "note": "牵引车是离港流程的最后一步，必须在所有其他保障完成后执行"
+    },
+    "description": "牵引车（也称推车）用于将飞机推离停机位（Pushback）或牵引飞机在机场区域内移动。作业期间车辆与飞机一对一绑定，通过牵引杆连接飞机前起落架。大推力牵引车可拖动 B777 等重型宽体客机。"
+  },
+  {
+    "type": "STAIR",
+    "name": "客梯车",
+    "service_mode": "ONE_TO_ONE",
+    "base_duration_min": 5,
+    "crew": "1 人",
+    "capacity": {
+      "label": "3.5-6.5 m"
+    },
+    "compatibility": {
+      "all_aircraft": false,
+      "rules": [
+        { "max_height_m": 5.5, "compatible_aircraft": ["A320", "B737"] },
+        { "max_height_m": 6.5, "compatible_aircraft": ["A320", "B737", "B777", "A330"] }
+      ],
+      "note": "客梯车对接高度必须大于等于飞机舱门高度，否则无法安全对接"
+    },
+    "constraints": {
+      "height_must_match": true,
+      "note": "高度与机型必须匹配，否则无法对接舱门"
+    },
+    "description": "客梯车为旅客提供从航站楼登机口至飞机舱门的上下通道。车辆升降平台可调节高度以适应不同机型舱门位置。作业时需与飞机舱门精确对接，确保旅客通行安全。"
+  },
+  {
+    "type": "GPU",
+    "name": "地面电源车",
+    "service_mode": "ONE_TO_ONE",
+    "base_duration_min": 60,
+    "crew": "1 人",
+    "capacity": {
+      "label": "90 kVA"
+    },
+    "compatibility": {
+      "all_aircraft": true,
+      "note": "电源车通用，不区分机型"
+    },
+    "constraints": {
+      "long_occupancy": true,
+      "note": "全程连接（从飞机到位到推出前），属于长时占用型车辆"
+    },
+    "description": "地面电源车（GPU）在飞机停靠期间为飞机提供电力供应，替代机载 APU 以节省燃油和减少噪音排放。GPU 在飞机到位后最早接入，在推出前最晚断开，属于全程占用型保障车辆。"
+  },
+  {
+    "type": "ACU",
+    "name": "空调车",
+    "service_mode": "ONE_TO_ONE",
+    "base_duration_min": 60,
+    "crew": "1 人",
+    "capacity": {
+      "label": "制冷量 150 kW"
+    },
+    "compatibility": {
+      "all_aircraft": true,
+      "note": "空调车通用，不区分机型"
+    },
+    "constraints": {
+      "long_occupancy": true,
+      "note": "全程连接（从飞机到位到推出前），属于长时占用型车辆"
+    },
+    "description": "空调车（ACU）在飞机停靠期间为飞机客舱和电子设备舱提供温度调节。与 GPU 类似，ACU 在飞机到位后最早接入、推出前最晚断开，属于全程占用型保障车辆。在极端气候条件下尤为重要。"
+  },
+  {
+    "type": "BUS",
+    "name": "摆渡车",
+    "service_mode": "ONE_TO_ONE",
+    "base_duration_min": 10,
+    "crew": "1 人",
+    "capacity": {
+      "label": "50-120 人/车",
+      "small_passengers": 50,
+      "large_passengers": 120
+    },
+    "compatibility": {
+      "all_aircraft": true,
+      "note": "按载客量匹配而非机型，一辆摆渡车一次只能运输一个航班的旅客"
+    },
+    "constraints": {
+      "strict_one_flight": true,
+      "note": "一辆摆渡车一次只能运输一个航班的旅客，不能混装不同航班旅客"
+    },
+    "description": "摆渡车用于在远机位与航站楼之间运输旅客。这是最关键的业务约束之一：一辆摆渡车一次只能运输一个航班的旅客，绝对不能混装。大型宽体客机（如 B777）可能需要 3-4 辆摆渡车循环运输才能完成全部旅客转运。"
+  }
+]
