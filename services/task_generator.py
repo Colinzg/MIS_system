@@ -1,36 +1,36 @@
-"""任务生成子系统 — 根据航班信息和保障规则创建地面服务任务.
+"""任务生成子系统 — 根据航班机型和停机位属性创建地面服务任务.
 
 职责 (对应 UC 矩阵):
-  - 读取: 航班信息、保障规则 (AircraftResource)
-  - 创建: 地面服务任务 (Task)
+  - 读取: 航班信息、机位属性、机型领域知识 (AircraftType)
+  - 创建: 地面服务任务 (Task)，含依赖链
 
-数据流向: 任务生成 → 调度规划 (输出待分配任务列表)
+规则来源: AircraftType.generate_tasks() — 由 aircraft_catalog.json 技术参数推导，
+不是数据库配置表。这是"业务建模"的核心体现。
 """
 from datetime import datetime, timedelta
 from models import db
 from models.flight import Flight
-from models.aircraft_resource import AircraftResource
+from models.gate import Gate
 from models.task import Task
+from models.aircraft import AircraftCatalog
 
 
 class TaskGenerator:
-    """根据航班机型匹配 AircraftResource 规则，批量生成保障任务."""
+    """根据机型保障规则批量生成任务，并设置依赖链."""
 
     @staticmethod
     def generate_for_flight(flight_id: int) -> dict:
-        """为指定航班生成所有 PENDING 保障任务.
+        """为指定航班生成全部保障任务，含依赖关系.
 
-        读取航班的 aircraft_type → 查询 AircraftResource 规则表 →
-        为每条规则创建对应 Task.
-
-        Args:
-            flight_id: 航班 ID
+        流程:
+          1. 读取 Flight → 获取 aircraft_type, gate_id
+          2. 读取 Gate → 获取 has_jet_bridge
+          3. AircraftCatalog.get(type) → AircraftType 实例
+          4. aircraft.generate_tasks(has_jet_bridge) → 任务规格列表
+          5. 两遍创建: 先建 Task 记录拿到 ID，再设置 depends_on
 
         Returns:
             {"flight_id": ..., "tasks_created": int, "errors": [str]}
-
-        Raises:
-            ValueError: 航班不存在或缺少机型信息
         """
         flight = db.session.get(Flight, flight_id)
         if not flight:
@@ -38,46 +38,57 @@ class TaskGenerator:
         if not flight.aircraft_type:
             raise ValueError(f"Flight {flight_id} has no aircraft_type set")
 
-        rules = AircraftResource.query.filter_by(
-            aircraft_type=flight.aircraft_type
-        ).all()
-        if not rules:
+        aircraft = AircraftCatalog.get(flight.aircraft_type)
+        if not aircraft:
             return {
                 "flight_id": flight_id,
                 "tasks_created": 0,
-                "errors": [f"no AircraftResource rules for {flight.aircraft_type}"],
+                "errors": [f"unknown aircraft_type: {flight.aircraft_type}"],
             }
 
-        created = 0
-        errors = []
-        for rule in rules:
-            for _ in range(rule.quantity):
+        gate = db.session.get(Gate, flight.gate_id) if flight.gate_id else None
+        has_jet_bridge = gate.has_jet_bridge if gate else True
+
+        task_specs = aircraft.generate_tasks(has_jet_bridge)
+
+        # Pass 1: 创建 Task 记录，记录 task_type → [Task.id] 映射
+        type_to_ids: dict[str, list[int]] = {}
+        created_tasks = []
+        for spec in task_specs:
+            for _ in range(spec["quantity"]):
                 task = Task(
                     flight_id=flight.id,
-                    task_type=rule.required_vehicle_type,
+                    task_type=spec["type"],
+                    required_variant=spec.get("variant"),
                     status="PENDING",
                     scheduled_start=flight.arrival_at or flight.scheduled_at,
                 )
                 db.session.add(task)
-                created += 1
+                db.session.flush()  # 获取 task.id
+                created_tasks.append(task)
+                type_to_ids.setdefault(spec["type"], []).append(task.id)
+
+        # Pass 2: 设置 depends_on
+        for spec in task_specs:
+            dep_type = spec.get("depends_on_type")
+            if dep_type and dep_type in type_to_ids:
+                for task_id in type_to_ids.get(spec["type"], []):
+                    t = db.session.get(Task, task_id)
+                    if t:
+                        # 依赖该类型最后一个创建的任务（确保依赖的是同一批任务）
+                        t.depends_on = type_to_ids[dep_type][-1]
 
         db.session.commit()
-        return {"flight_id": flight_id, "tasks_created": created, "errors": errors}
+        return {
+            "flight_id": flight_id,
+            "tasks_created": len(created_tasks),
+            "errors": [],
+        }
 
     @staticmethod
     def generate_for_upcoming(hours: int = 3) -> dict:
-        """为未来指定小时内所有尚无任务的航班生成保障任务.
-
-        遍历指定时间窗口内的航班，跳过已有 PENDING 任务的航班。
-        适合定时任务或按钮触发的批量生成场景。
-
-        Args:
-            hours: 向前扫描的小时数，默认 3
-
-        Returns:
-            {"flights_processed": int, "tasks_created": int, "errors": [str]}
-        """
-        now = datetime.utcnow() + timedelta(hours=8)  # 北京时间 (UTC+8)
+        """为未来指定小时内所有尚无任务的航班生成保障任务."""
+        now = datetime.utcnow() + timedelta(hours=8)
         deadline = now + timedelta(hours=hours)
 
         flights = Flight.query.filter(
@@ -90,7 +101,6 @@ class TaskGenerator:
         errors = []
 
         for flight in flights:
-            # 跳过已有待分配任务的航班
             existing = Task.query.filter_by(
                 flight_id=flight.id, status="PENDING"
             ).count()

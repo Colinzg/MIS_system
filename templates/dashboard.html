@@ -2,18 +2,19 @@
 {% block title %}调度看板 — 无锡硕放机场地面车辆调度系统{% endblock %}
 {% block content %}
 
-{% set task_type_names = {'FUEL': '加油', 'BAG': '行李', 'TOW': '牵引', 'STAIR': '客梯'} %}
-{% set vtype_names = {'FUEL': '加油车', 'BAG': '行李车', 'TOW': '牵引车', 'STAIR': '客梯车'} %}
-{% set vtype_icons = {'FUEL': '⛽', 'BAG': '🧳', 'TOW': '🚜', 'STAIR': '🪜'} %}
+{% set task_type_names = {'TOW': '牵引', 'GPU': '电源', 'STAIR': '客梯', 'BUS': '摆渡', 'FUEL': '加油', 'BAG': '行李', 'CLEAN': '清洁'} %}
+{% set vtype_names = {'TOW': '牵引车', 'GPU': '电源车', 'STAIR': '客梯车', 'BUS': '摆渡车', 'FUEL': '加油车', 'BAG': '行李车', 'CLEAN': '清洁车'} %}
+{% set vtype_icons = {'TOW': '🚜', 'GPU': '🔌', 'STAIR': '🪜', 'BUS': '🚌', 'FUEL': '⛽', 'BAG': '🧳', 'CLEAN': '🧹'} %}
 {% set vstatus_map = {
     'IDLE': ('green', '空闲'),
     'ASSIGNED': ('yellow', '已分配'),
     'CONFIRMED': ('blue', '已确认'),
     'BUSY': ('purple', '工作中'),
+    'REFUELING': ('orange', '回补中'),
     'MAINTENANCE': ('yellow', '维修中')
 } %}
 
-{% set task_type_colors = {'FUEL': '#eab308', 'BAG': '#22c55e', 'TOW': '#a855f7', 'STAIR': '#3b82f6'} %}
+{% set task_type_colors = {'TOW': '#a855f7', 'GPU': '#f59e0b', 'STAIR': '#3b82f6', 'BUS': '#10b981', 'FUEL': '#eab308', 'BAG': '#22c55e', 'CLEAN': '#ef4444'} %}
 
 {# ── 车辆类型概览栏（header 下方） ── #}
 <div class="vtype-bar">
@@ -89,10 +90,10 @@
                 {% set urg_cls = 'urg-red' if minutes_left < 30 else ('urg-yellow' if minutes_left < 60 else 'urg-green') %}
                 {% set total = fg.tasks | length %}
                 {% set assigned = fg.tasks | selectattr('vehicle_id') | list | length %}
-                <div class="fcard {{ urg_cls }}" data-gate="{{ flight.gate or '' }}" data-flight-no="{{ flight.flight_no }}">
+                <div class="fcard {{ urg_cls }}" data-gate="{{ flight.gate.code if flight.gate else '' }}" data-flight-no="{{ flight.flight_no }}">
                     <div class="fcard-header" onclick="toggleFlight(this)">
                         <div class="fcard-top">
-                            <span class="fcard-acft">{{ flight.aircraft_type or '--' }}<span class="fcard-gate">· {{ flight.gate or '--' }}</span></span>
+                            <span class="fcard-acft">{{ flight.aircraft_type or '--' }}<span class="fcard-gate">· {{ flight.gate.code if flight.gate else '--' }}</span></span>
                             <span class="fcard-count">{{ assigned }}/{{ total }}</span>
                         </div>
                         <div class="fcard-meta">
@@ -166,7 +167,7 @@
                             {% for t in active_tasks %}
                             <tr>
                                 <td class="cell-flight">{{ t.flight.flight_no if t.flight else '--' }}</td>
-                                <td>{{ t.flight.gate if t.flight else '--' }}</td>
+                                <td>{{ t.flight.gate.code if t.flight and t.flight.gate else '--' }}</td>
                                 <td><span class="task-tag tag-{{ t.task_type }}">{{ task_type_names.get(t.task_type, t.task_type) }}</span></td>
                                 <td class="cell-vehicle">{{ t.vehicle.plate if t.vehicle else '--' }}</td>
                                 <td class="cell-time">{{ t.scheduled_start.strftime('%H:%M') if t.scheduled_start else '--' }}</td>

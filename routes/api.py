@@ -46,10 +46,14 @@ GATE_COORDS = _build_gate_coords()
 PARKING_COORDS = _build_parking_coords()
 
 VEHICLE_TYPE_ICONS = {
-    "FUEL": "⛽", "BAG": "🧳", "TOW": "🚜", "STAIR": "🪜",
+    "TOW": "🚜", "GPU": "🔌", "STAIR": "🪜", "BUS": "🚌",
+    "FUEL": "⛽", "BAG": "🧳", "CLEAN": "🧹",
 }
 
-TASK_TYPE_NAMES = {"FUEL": "加油", "BAG": "行李", "TOW": "牵引", "STAIR": "客梯"}
+TASK_TYPE_NAMES = {
+    "TOW": "牵引", "GPU": "电源", "STAIR": "客梯", "BUS": "摆渡",
+    "FUEL": "加油", "BAG": "行李", "CLEAN": "清洁",
+}
 
 
 @api_bp.route("/api/map-data")
@@ -83,14 +87,15 @@ def map_data():
 
     flights_data = []
     for f in flights:
-        gate = GATE_COORDS.get(f.gate) if f.gate else None
+        gate_code = f.gate.code if f.gate else None
+        gate = GATE_COORDS.get(gate_code) if gate_code else None
         pos = {"x": gate["x"], "y": gate["y"]} if gate else None
         flights_data.append({
             "id": f.id,
             "flight_no": f.flight_no,
             "airline": f.airline,
             "aircraft_type": f.aircraft_type,
-            "gate": f.gate,
+            "gate": gate_code,
             "region": f.region.code if f.region else None,
             "status": f.status,
             "position": pos,
@@ -107,7 +112,7 @@ def map_data():
         if assigned_flight_id:
             flight = Flight.query.get(assigned_flight_id)
             if flight and flight.gate:
-                gate = GATE_COORDS.get(flight.gate)
+                gate = GATE_COORDS.get(flight.gate.code)
                 pos = {"x": gate["x"], "y": gate["y"] - 28} if gate else {"x": parking["x"], "y": parking["y"]}
             else:
                 pos = {"x": parking["x"], "y": parking["y"]}
@@ -166,7 +171,7 @@ def assign_task():
     db.session.commit()
 
     # 自动向车辆发送任务通知
-    gate = task.flight.gate if task.flight else "--"
+    gate = task.flight.gate.code if task.flight and task.flight.gate else "--"
     flight_no = task.flight.flight_no if task.flight else "--"
     notif = CommunicationLog(
         vehicle_id=vehicle.id, sender="DISPATCH",
@@ -383,7 +388,7 @@ def vehicle_active_task(vehicle_id):
             "task_type": task.task_type,
             "task_type_name": TASK_TYPE_NAMES.get(task.task_type, task.task_type),
             "flight_no": flight.flight_no if flight else None,
-            "gate": flight.gate if flight else None,
+            "gate": flight.gate.code if flight and flight.gate else None,
             "scheduled_start": task.scheduled_start.strftime("%H:%M") if task.scheduled_start else None,
         },
     })

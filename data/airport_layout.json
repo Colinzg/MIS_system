@@ -1,6 +1,6 @@
 {
   "airport_name": "示例国际机场",
-  "description": "机场平面图数据，包含区域划分、停机位坐标、路网拓扑。坐标系为态势图 SVG 像素坐标（viewBox 0 -14 1000 294），与前端渲染直接对应。",
+  "description": "机场平面图数据：区域划分、停机位（含廊桥属性）、路网拓扑。坐标系为态势图 SVG 像素坐标（viewBox 0 -14 1000 294），与前端渲染直接对应。",
 
   "regions": [
     { "code": "A", "name": "A 区（1号航站楼）" },
@@ -9,24 +9,24 @@
 
   "gates": {
     "A": [
-      { "code": "A01", "x": 30,  "y": 102 },
-      { "code": "A02", "x": 82,  "y": 102 },
-      { "code": "A03", "x": 134, "y": 102 },
-      { "code": "A04", "x": 186, "y": 102 },
-      { "code": "A05", "x": 238, "y": 102 },
-      { "code": "A06", "x": 290, "y": 102 },
-      { "code": "A07", "x": 342, "y": 102 },
-      { "code": "A08", "x": 394, "y": 102 }
+      { "code": "A01", "x": 30,  "y": 102, "has_jet_bridge": true },
+      { "code": "A02", "x": 82,  "y": 102, "has_jet_bridge": true },
+      { "code": "A03", "x": 134, "y": 102, "has_jet_bridge": true },
+      { "code": "A04", "x": 186, "y": 102, "has_jet_bridge": true },
+      { "code": "A05", "x": 238, "y": 102, "has_jet_bridge": false },
+      { "code": "A06", "x": 290, "y": 102, "has_jet_bridge": false },
+      { "code": "A07", "x": 342, "y": 102, "has_jet_bridge": false },
+      { "code": "A08", "x": 394, "y": 102, "has_jet_bridge": false }
     ],
     "B": [
-      { "code": "B01", "x": 606, "y": 102 },
-      { "code": "B02", "x": 658, "y": 102 },
-      { "code": "B03", "x": 710, "y": 102 },
-      { "code": "B04", "x": 762, "y": 102 },
-      { "code": "B05", "x": 814, "y": 102 },
-      { "code": "B06", "x": 866, "y": 102 },
-      { "code": "B07", "x": 918, "y": 102 },
-      { "code": "B08", "x": 970, "y": 102 }
+      { "code": "B01", "x": 606, "y": 102, "has_jet_bridge": true },
+      { "code": "B02", "x": 658, "y": 102, "has_jet_bridge": true },
+      { "code": "B03", "x": 710, "y": 102, "has_jet_bridge": true },
+      { "code": "B04", "x": 762, "y": 102, "has_jet_bridge": true },
+      { "code": "B05", "x": 814, "y": 102, "has_jet_bridge": false },
+      { "code": "B06", "x": 866, "y": 102, "has_jet_bridge": false },
+      { "code": "B07", "x": 918, "y": 102, "has_jet_bridge": false },
+      { "code": "B08", "x": 970, "y": 102, "has_jet_bridge": false }
     ]
   },
 

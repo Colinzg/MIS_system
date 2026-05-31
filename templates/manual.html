@@ -2,8 +2,8 @@
 {% block title %}工作手册 — 无锡硕放机场地面车辆调度系统{% endblock %}
 {% block content %}
 
-{% set vtype_icons = {'FUEL': '⛽', 'BAG': '🧳', 'TOW': '🚜', 'STAIR': '🪜'} %}
-{% set vtype_colors = {'FUEL': '#eab308', 'BAG': '#22c55e', 'TOW': '#a855f7', 'STAIR': '#3b82f6'} %}
+{% set vtype_icons = {'TOW': '🚜', 'GPU': '🔌', 'STAIR': '🪜', 'BUS': '🚌', 'FUEL': '⛽', 'BAG': '🧳', 'CLEAN': '🧹'} %}
+{% set vtype_colors = {'TOW': '#a855f7', 'GPU': '#f59e0b', 'STAIR': '#3b82f6', 'BUS': '#10b981', 'FUEL': '#eab308', 'BAG': '#22c55e', 'CLEAN': '#ef4444'} %}
 
 <div class="wiki-wrap">
 
@@ -48,7 +48,6 @@
   {# ═══════════ 右侧内容区 ═══════════ #}
   <main class="wiki-content">
 
-    {# ── 页面标题 ── #}
     <div class="wiki-page-header">
       <h1 class="wiki-title">工作手册</h1>
       <div class="wiki-subtitle">无锡硕放机场 · 地面服务车辆与机型技术手册</div>
@@ -62,31 +61,41 @@
       {% for ac in known_aircraft %}
       {% set spec = aircraft_specs.get(ac, {}) %}
       {% set rules = aircraft_rules.get(ac, []) %}
+      {% set image_path = 'images/aircraft_' ~ ac.lower() ~ '.jpg' %}
       <article class="wiki-article" id="ac-{{ ac }}">
         <div class="article-head">
           <h3 class="article-title">{{ spec.get('name', ac) }}</h3>
           <span class="article-code">{{ ac }}</span>
         </div>
 
-        {# ── 信息框（Infobox） ── #}
-        {% if spec %}
-        <div class="infobox">
-          <div class="infobox-title">{{ spec.get('image_label', spec.name) }}</div>
-          <table class="infobox-table">
-            <tr><th>制造商</th><td>{{ spec.manufacturer }}</td></tr>
-            <tr><th>类型</th><td>{{ spec.type }}</td></tr>
-            <tr><th>长度</th><td>{{ spec.length }}</td></tr>
-            <tr><th>翼展</th><td>{{ spec.wingspan }}</td></tr>
-            <tr><th>高度</th><td>{{ spec.height }}</td></tr>
-            <tr><th>最大起飞重量</th><td>{{ spec.max_takeoff_weight }}</td></tr>
-            <tr><th>最大着陆重量</th><td>{{ spec.max_landing_weight }}</td></tr>
-            <tr><th>航程</th><td>{{ spec.range }}</td></tr>
-            <tr><th>巡航速度</th><td>{{ spec.cruise_speed }}</td></tr>
-            <tr><th>座位数</th><td>{{ spec.seats }}</td></tr>
-            <tr><th>发动机选项</th><td>{{ spec.engine_options }}</td></tr>
-          </table>
+        {# ── 图文区：图片 + 信息框 ── #}
+        <div class="article-media-row">
+          <div class="article-image-wrap">
+            <img class="article-image"
+                 src="{{ url_for('static', filename=image_path) }}"
+                 alt="{{ spec.get('name', ac) }}"
+                 loading="lazy">
+          </div>
+
+          {% if spec %}
+          <div class="infobox">
+            <div class="infobox-title">{{ spec.name }}</div>
+            <table class="infobox-table">
+              <tr><th>制造商</th><td>{{ spec.manufacturer }}</td></tr>
+              <tr><th>类型</th><td>{{ spec.type }}</td></tr>
+              <tr><th>长度</th><td>{{ spec.length }}</td></tr>
+              <tr><th>翼展</th><td>{{ spec.wingspan }}</td></tr>
+              <tr><th>高度</th><td>{{ spec.height }}</td></tr>
+              <tr><th>最大起飞重量</th><td>{{ spec.max_takeoff_weight }}</td></tr>
+              <tr><th>最大着陆重量</th><td>{{ spec.max_landing_weight }}</td></tr>
+              <tr><th>航程</th><td>{{ spec.range }}</td></tr>
+              <tr><th>巡航速度</th><td>{{ spec.cruise_speed }}</td></tr>
+              <tr><th>座位数</th><td>{{ spec.seats }}</td></tr>
+              <tr><th>发动机</th><td>{{ spec.engine_options }}</td></tr>
+            </table>
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
 
         {# ── 正文 ── #}
         <div class="article-body">
@@ -94,15 +103,16 @@
           <p>{{ spec.description }}</p>
           {% endif %}
 
-          {# ── 保障需求表 ── #}
           {% if rules %}
           <div class="article-subsection">
             <h4 class="subsection-title">保障车辆需求</h4>
             <table class="wiki-table">
               <thead>
                 <tr>
-                  <th style="width:60%">车辆类型</th>
-                  <th style="width:40%">所需数量</th>
+                  <th style="width:35%">车辆类型</th>
+                  <th style="width:20%">等级</th>
+                  <th style="width:12%">数量</th>
+                  <th>备注</th>
                 </tr>
               </thead>
               <tbody>
@@ -114,7 +124,9 @@
                       {{ type_names.get(r.required_vehicle_type, r.required_vehicle_type) }}
                     </span>
                   </td>
+                  <td>{{ r.variant or '—' }}</td>
                   <td><span class="qty-badge">{{ r.quantity }} 辆</span></td>
+                  <td class="cell-note">{{ r.note }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -126,8 +138,6 @@
           </div>
           {% endif %}
         </div>
-
-        <div class="article-clear"></div>
       </article>
       {% endfor %}
     </section>
@@ -145,11 +155,11 @@
           <span class="article-code">{{ code }}</span>
         </div>
 
-        {# ── 信息框（Infobox） ── #}
         <div class="infobox">
           <div class="infobox-title">{{ spec.name }}</div>
           <table class="infobox-table">
             <tr><th>车型代码</th><td>{{ spec.code }}</td></tr>
+            <tr><th>等级</th><td>{{ spec.variants }}</td></tr>
             <tr><th>服务模式</th><td>{{ spec.service_mode }}</td></tr>
             <tr><th>基准作业时长</th><td>{{ spec.base_duration }}</td></tr>
             <tr><th>作业人员</th><td>{{ spec.crew }}</td></tr>
@@ -161,9 +171,17 @@
           </table>
         </div>
 
-        {# ── 正文 ── #}
         <div class="article-body">
           <p>{{ spec.description }}</p>
+
+          {% if spec.constraints %}
+          <div class="article-subsection">
+            <h4 class="subsection-title">调度约束</h4>
+            {% for c in spec.constraints %}
+            <p class="note-text">{{ c }}</p>
+            {% endfor %}
+          </div>
+          {% endif %}
 
           {% if info and info.vehicles %}
           <div class="article-subsection">
@@ -172,6 +190,7 @@
               <thead>
                 <tr>
                   <th>车牌号</th>
+                  <th>等级</th>
                   <th>所在区域</th>
                   <th>当前状态</th>
                 </tr>
@@ -180,9 +199,10 @@
                 {% for v in info.vehicles %}
                 <tr>
                   <td class="cell-plate">{{ v.plate }}</td>
+                  <td>{{ v.variant or '—' }}</td>
                   <td>{{ v.region.code if v.region else '--' }}</td>
                   <td>
-                    {% set sc = {'IDLE': 'green', 'ASSIGNED': 'yellow', 'CONFIRMED': 'blue', 'BUSY': 'purple', 'MAINTENANCE': 'yellow'} %}
+                    {% set sc = {'IDLE': 'green', 'ASSIGNED': 'yellow', 'BUSY': 'purple', 'REFUELING': 'orange', 'MAINTENANCE': 'yellow'} %}
                     <span class="indicator indicator-{{ sc.get(v.status, 'gray') }}">
                       {{- status_names.get(v.status, v.status) -}}
                     </span>
@@ -218,7 +238,6 @@ function toggleTocCat(el) {
   }
 }
 
-// 高亮当前阅读的 TOC 条目
 const tocLinks = document.querySelectorAll('.toc-link');
 const articles = document.querySelectorAll('.wiki-article');
 const observer = new IntersectionObserver((entries) => {

@@ -268,7 +268,7 @@ body {
             <div class="task-display">
                 <div class="task-flight">{{ active_task.flight.flight_no if active_task.flight else '--' }}</div>
                 <div class="task-meta">
-                    <span>📍 {{ active_task.flight.gate if active_task.flight else '--' }}</span>
+                    <span>📍 {{ active_task.flight.gate.code if active_task.flight and active_task.flight.gate else '--' }}</span>
                     <span>{{ type_names.get(active_task.task_type, active_task.task_type) }}</span>
                 </div>
                 <div class="task-time">计划 {{ active_task.scheduled_start.strftime('%H:%M') if active_task.scheduled_start else '--' }}</div>

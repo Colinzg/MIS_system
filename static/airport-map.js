@@ -12,7 +12,7 @@ const MAP_W = 1000, MAP_H = 294;
 // 状态 → 颜色
 const STATUS_COLORS = {
   FLIGHT:  { SCHEDULED: '#3b82f6', ARRIVED: '#f59e0b', DEPARTED: '#22c55e', CANCELLED: '#ef4444' },
-  VEHICLE: { IDLE: '#22c55e', BUSY: '#a855f7', MAINTENANCE: '#f59e0b' },
+  VEHICLE: { IDLE: '#22c55e', ASSIGNED: '#eab308', BUSY: '#a855f7', REFUELING: '#f97316', MAINTENANCE: '#f59e0b' },
 };
 
 // 主渲染函数
@@ -152,7 +152,7 @@ function renderAirportMap(containerId) {
         .attr('fill', '#64748b').attr('font-size', 7)
         .text(d => d.aircraft_type || '');
       // 服务车辆药丸标签
-      var vColors = {'FUEL': '#eab308', 'BAG': '#22c55e', 'TOW': '#a855f7', 'STAIR': '#3b82f6'};
+      var vColors = {'TOW': '#a855f7', 'GPU': '#f59e0b', 'STAIR': '#3b82f6', 'BUS': '#10b981', 'FUEL': '#eab308', 'BAG': '#22c55e', 'CLEAN': '#ef4444'};
       fEnter.each(function(d) {
         var group = d3.select(this);
         (d.assigned_vehicles || []).forEach(function(v, i) {

@@ -9,6 +9,7 @@ var VSTATUS_MAP = {
     'ASSIGNED': ['yellow', '已分配'],
     'CONFIRMED': ['blue', '已确认'],
     'BUSY': ['purple', '工作中'],
+    'REFUELING': ['orange', '回补中'],
     'MAINTENANCE': ['yellow', '维修中'],
 };
 

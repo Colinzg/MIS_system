@@ -1,10 +1,7 @@
 """Task — 航班保障任务.
 
-每个航班需要生成若干任务，每种任务类型对应一种车辆：
-  - FUEL     → 加油车
-  - BAG      → 行李车
-  - TOW      → 牵引车
-  - STAIR    → 客梯车
+每个航班按 AircraftType.generate_tasks() 生成若干任务，涵盖 7 种车辆类型。
+任务间通过 depends_on 形成依赖链，调度器按拓扑顺序分配。
 
 状态枚举: PENDING / IN_PROGRESS / COMPLETED / FAILED
 """
@@ -28,7 +25,12 @@ class Task(db.Model):
     task_type = db.Column(
         db.String(8),
         nullable=False,
-        comment="任务类型: FUEL / BAG / TOW / STAIR",
+        comment="任务类型: TOW / GPU / STAIR / BUS / FUEL / BAG / CLEAN",
+    )
+    required_variant = db.Column(
+        db.String(16),
+        nullable=True,
+        comment="所需车辆等级，如 重型 / 高管型，调度器据此匹配车辆",
     )
     scheduled_start = db.Column(db.DateTime, nullable=True, comment="计划开始时间")
     scheduled_end = db.Column(db.DateTime, nullable=True, comment="计划结束时间")
@@ -50,4 +52,4 @@ class Task(db.Model):
     vehicle = db.relationship("Vehicle", back_populates="tasks")
 
     def __repr__(self):
-        return f"<Task {self.task_type} for {self.flight_id}>"
+        return f"<Task {self.task_type} for flight#{self.flight_id}>"
