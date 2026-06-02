@@ -49,34 +49,33 @@ class TaskGenerator:
         gate = db.session.get(Gate, flight.gate_id) if flight.gate_id else None
         has_jet_bridge = gate.has_jet_bridge if gate else True
 
-        task_specs = aircraft.generate_tasks(has_jet_bridge)
+        # needs_fuel 由航班属性决定，当前默认 False
+        needs_fuel = getattr(flight, 'needs_fuel', False)
+        task_specs = aircraft.generate_tasks(has_jet_bridge, needs_fuel)
 
-        # Pass 1: 创建 Task 记录，记录 task_type → [Task.id] 映射
-        type_to_ids: dict[str, list[int]] = {}
+        # Pass 1: 创建 Task 记录，记录 task_type → task.id 映射
+        type_to_ids: dict[str, int] = {}
         created_tasks = []
         for spec in task_specs:
-            for _ in range(spec["quantity"]):
-                task = Task(
-                    flight_id=flight.id,
-                    task_type=spec["type"],
-                    required_variant=spec.get("variant"),
-                    status="PENDING",
-                    scheduled_start=flight.arrival_at or flight.scheduled_at,
-                )
-                db.session.add(task)
-                db.session.flush()  # 获取 task.id
-                created_tasks.append(task)
-                type_to_ids.setdefault(spec["type"], []).append(task.id)
+            task = Task(
+                flight_id=flight.id,
+                task_type=spec["type"],
+                status="PENDING",
+                scheduled_start=flight.arrival_at or flight.scheduled_at,
+            )
+            db.session.add(task)
+            db.session.flush()  # 获取 task.id
+            created_tasks.append(task)
+            type_to_ids[spec["type"]] = task.id
 
         # Pass 2: 设置 depends_on
         for spec in task_specs:
             dep_type = spec.get("depends_on_type")
             if dep_type and dep_type in type_to_ids:
-                for task_id in type_to_ids.get(spec["type"], []):
-                    t = db.session.get(Task, task_id)
-                    if t:
-                        # 依赖该类型最后一个创建的任务（确保依赖的是同一批任务）
-                        t.depends_on = type_to_ids[dep_type][-1]
+                task_id = type_to_ids[spec["type"]]
+                t = db.session.get(Task, task_id)
+                if t:
+                    t.depends_on = type_to_ids[dep_type]
 
         db.session.commit()
         return {

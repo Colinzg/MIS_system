@@ -29,6 +29,6 @@ class PathCalculator:
         return {"path": [], "total_distance_m": 0, "total_duration_min": 0}
 
     @staticmethod
-    def estimate_duration(vehicle_id: int, task_region_id: int) -> float:
+    def estimate_duration(plate_number: str, task_region_id: int) -> float:
         """预估车辆从当前位置到任务区域的通行时间（分钟）."""
         return 0.0

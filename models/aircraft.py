@@ -70,56 +70,38 @@ class AircraftType:
 
     # ── 任务生成 ────────────────────────────────────────────
 
-    def generate_tasks(self, gate_has_jet_bridge: bool) -> list:
-        """生成该机型在一次过站保障中的全部任务清单.
+    def generate_tasks(self, gate_has_jet_bridge: bool, needs_fuel: bool = False) -> list:
+        """生成该机型在一次过站保障中的任务清单.
 
         Args:
             gate_has_jet_bridge: 停机位是否有廊桥
+            needs_fuel: 是否需要加油（非每个航班必须）
 
         Returns:
-            [{"type": str, "quantity": int, "variant": str|None, "depends_on_type": str|None}, ...]
-            depends_on_type 用于设置任务依赖链。
+            [{"type": str, "depends_on_type": str|None}, ...]
         """
         tasks = []
 
-        # GPU — 全程连接，最先上
-        tasks.append({"type": "GPU", "quantity": 1, "variant": "通用型", "depends_on_type": None})
+        # GPU — 刚性需求，全程供电
+        tasks.append({"type": "GPU", "depends_on_type": None})
 
-        # STAIR + BUS — 仅无廊桥机位需要
+        # STAIR + BUS — 仅远机位
         if not gate_has_jet_bridge:
-            tasks.append({
-                "type": "STAIR", "quantity": self.stair_count(),
-                "variant": self.required_stair_class(), "depends_on_type": None,
-            })
-            tasks.append({
-                "type": "BUS", "quantity": self.bus_count(),
-                "variant": self.bus_class(), "depends_on_type": "STAIR",
-            })
+            tasks.append({"type": "STAIR", "depends_on_type": None})
+            tasks.append({"type": "BUS", "depends_on_type": "STAIR"})
 
-        # BAG — 依赖 STAIR（旅客下机后才能卸行李，无廊桥时）；有廊桥时无前置
+        # BAG — 行李装卸，远机位依赖 STAIR（旅客下机后才能卸行李）
         tasks.append({
-            "type": "BAG", "quantity": self.baggage_vehicle_count(),
-            "variant": "通用型",
+            "type": "BAG",
             "depends_on_type": "STAIR" if not gate_has_jet_bridge else None,
         })
 
-        # CLEAN — 过站清洁，在行李卸货后
-        tasks.append({
-            "type": "CLEAN", "quantity": 1, "variant": "通用型",
-            "depends_on_type": "BAG",
-        })
+        # FUEL — 按需生成，非刚性需求
+        if needs_fuel:
+            tasks.append({"type": "FUEL", "depends_on_type": None})
 
-        # FUEL — 可并行，无严格前置
-        tasks.append({
-            "type": "FUEL", "quantity": 1,
-            "variant": self.required_fuel_class(), "depends_on_type": None,
-        })
-
-        # TOW — 最后一步，依赖 CLEAN（依赖链末端），调度器额外检查全部任务完成
-        tasks.append({
-            "type": "TOW", "quantity": 1,
-            "variant": self.required_tow_class(), "depends_on_type": "CLEAN",
-        })
+        # TOW — 刚性需求，最后一步，依赖 BAG
+        tasks.append({"type": "TOW", "depends_on_type": "BAG"})
 
         return tasks
 

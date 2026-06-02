@@ -15,7 +15,7 @@ db = SQLAlchemy()
 
 from .region import Region  # noqa: E402, F401
 from .gate import Gate  # noqa: E402, F401
-from .vehicle import Vehicle  # noqa: E402, F401
+from .vehicle import VehicleModel, VehicleInfo, VehicleStatus  # noqa: E402, F401
 from .flight import Flight  # noqa: E402, F401
 from .task import Task  # noqa: E402, F401
 from .road_network import RoadNode, RoadEdge  # noqa: E402, F401

@@ -19,9 +19,6 @@ class Gate(db.Model):
     has_jet_bridge = db.Column(
         db.Boolean, default=True, comment="是否有廊桥；无廊桥需客梯车+摆渡车"
     )
-    x = db.Column(db.Float, nullable=True, comment="态势图 X 坐标")
-    y = db.Column(db.Float, nullable=True, comment="态势图 Y 坐标")
-
     # relationships
     region = db.relationship("Region", backref="gates")
     flights = db.relationship("Flight", back_populates="gate")

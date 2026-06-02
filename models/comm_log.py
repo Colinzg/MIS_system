@@ -10,8 +10,8 @@ class CommunicationLog(db.Model):
     __tablename__ = "communication_logs"
 
     id = db.Column(db.Integer, primary_key=True)
-    vehicle_id = db.Column(
-        db.Integer, db.ForeignKey("vehicles.id"), nullable=False, comment="车辆 ID"
+    plate_number = db.Column(
+        db.String(16), db.ForeignKey("vehicle_info.plate_number"), nullable=False, comment="车牌号"
     )
     sender = db.Column(
         db.String(16), nullable=False, comment="发送方: DISPATCH / VEHICLE"
@@ -25,13 +25,13 @@ class CommunicationLog(db.Model):
     read = db.Column(db.Boolean, default=False, comment="调度员是否已读")
 
     # relationships
-    vehicle = db.relationship("Vehicle", back_populates="comm_logs")
+    vehicle = db.relationship("VehicleInfo", back_populates="comm_logs")
 
     def to_dict(self):
         return {
             "id": self.id,
-            "vehicle_id": self.vehicle_id,
-            "vehicle_plate": self.vehicle.plate if self.vehicle else None,
+            "plate_number": self.plate_number,
+            "vehicle_plate": self.plate_number,
             "sender": self.sender,
             "content": self.content,
             "msg_type": self.msg_type,

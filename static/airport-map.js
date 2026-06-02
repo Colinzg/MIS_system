@@ -4,7 +4,7 @@
  * 布局（俯视）：
  *   [=== T1 (A01-A08) ===]  [A-1] [塔台] [B-1]  [=== T2 (B01-B08) ===]
  *
- * 停机位和停车场坐标从 /api/map-data 加载，与 data/airport_layout.json 同步。
+ * 停机位和停车场坐标从 /api/map-data 加载，与 data/airport_display.json 同步。
  */
 
 const MAP_W = 1000, MAP_H = 294;
@@ -95,7 +95,7 @@ function renderAirportMap(containerId) {
           .attr('fill', '#64748b').attr('font-size', 7).text(g.code);
       });
 
-      // 停车场（从 API 数据加载，与 airport_layout.json 同步）
+      // 停车场（从 API 数据加载，与 airport_display.json 同步）
       (data.parking_areas || []).forEach(p => {
         const pg = svg.append('g');
         pg.append('circle')

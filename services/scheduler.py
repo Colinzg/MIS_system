@@ -1,43 +1,39 @@
 """调度规划子系统 — 为航班保障任务分配最合适的车辆.
 
 职责 (对应 UC 矩阵):
-  - 读取: 保障规则 (vehicle_catalog.json)、地面服务任务、车辆状态
+  - 读取: vehicle_models 表、vehicle_info 表、vehicle_status 表、地面服务任务
   - 创建: 调度分配结果 (任务-车辆绑定)
 
 调度约束优先级:
-  1. 车型匹配 — task_type 一致
-  2. 等级匹配 — task.required_variant 与 vehicle.variant 一致
-  3. 机型适配 — 车辆 variant 的技术参数满足目标机型要求
-  4. 区域优先 — 同区域空闲车辆优先，减少空驶
-  5. 任务依赖 — 前置任务未完成时暂不分配
-  6. 容量约束 — 需回补的车辆在回补完成前不可分配
+  1. 车型匹配 — task_type 与 vehicle_type 一致
+  2. 机型兼容 — vehicle_models.compatible_aircraft 包含目标机型
+  3. 区域优先 — 同区域空闲车辆优先
+  4. 任务依赖 — 前置任务未完成时暂不分配
 """
 import json
 import os
 from models import db
-from models.vehicle import Vehicle
+from models.vehicle import VehicleInfo, VehicleStatus
 from models.task import Task
 from models.flight import Flight
-from models.aircraft import AircraftCatalog
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
-def _load_vehicle_catalog() -> list:
-    path = os.path.join(DATA_DIR, "vehicle_catalog.json")
+def _load_vehicle_models() -> list:
+    path = os.path.join(DATA_DIR, "vehicle_models.json")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def _find_variant_spec(vehicle_type: str, variant_class: str) -> dict:
-    """在 vehicle_catalog.json 中查找指定车型等级的规格."""
-    catalog = _load_vehicle_catalog()
+def _get_model_compatible_aircraft(brand_model: str) -> list:
+    """从 vehicle_models.json 查询指定型号的兼容机型列表."""
+    catalog = _load_vehicle_models()
     for entry in catalog:
-        if entry["type"] == vehicle_type:
-            for v in entry.get("variants", []):
-                if v["class"] == variant_class:
-                    return v
-    return {}
+        for m in entry.get("models", []):
+            if m["brand_model"] == brand_model:
+                return m.get("compatible_aircraft", [])
+    return []
 
 
 class Scheduler:
@@ -50,7 +46,7 @@ class Scheduler:
             raise ValueError(f"Flight {flight_id} not found")
 
         pending_tasks = Task.query.filter_by(
-            flight_id=flight_id, status="PENDING", vehicle_id=None,
+            flight_id=flight_id, status="PENDING", plate_number=None,
         ).all()
 
         result = {"flight_id": flight_id, "tasks": [], "errors": []}
@@ -74,80 +70,62 @@ class Scheduler:
                 )
                 continue
 
-            vehicle = self._select_vehicle(task, flight)
-            if vehicle:
-                task.vehicle_id = vehicle.id
+            plate = self._select_vehicle(task, flight)
+            if plate:
+                task.plate_number = plate
                 task.status = "IN_PROGRESS"
-                vehicle.status = "ASSIGNED"
+                vstat = db.session.query(VehicleStatus).filter_by(plate_number=plate).first()
+                if vstat:
+                    vstat.current_status = "ASSIGNED"
+                vinfo = db.session.get(VehicleInfo, plate)
                 result["tasks"].append({
                     "task_type": task.task_type,
-                    "vehicle_id": vehicle.id,
-                    "vehicle_plate": vehicle.plate,
-                    "variant": vehicle.variant,
+                    "plate_number": plate,
+                    "brand_model": vinfo.brand_model if vinfo else "",
                     "status": "IN_PROGRESS",
                 })
             else:
                 result["errors"].append(
-                    f"{task.task_type}(variant={task.required_variant}): no available vehicle"
+                    f"{task.task_type}: no compatible vehicle available"
                 )
 
         db.session.commit()
         return result
 
-    def _select_vehicle(self, task: Task, flight: Flight):
-        """按约束链选车.
+    def _select_vehicle(self, task: Task, flight: Flight) -> str | None:
+        """按约束链选车，返回 plate_number.
 
-        1. 车型 + 等级匹配的 IDLE 车辆
-        2. 区域优先（同区域 > 跨区）
-        3. 机型适配验证
+        1. 车型匹配 task_type
+        2. 机型兼容（通过 vehicle_models.compatible_aircraft）
+        3. 区域优先
         """
-        query = Vehicle.query.filter_by(type=task.task_type, status="IDLE")
+        # 同车型且空闲的车辆
+        candidates = db.session.query(VehicleInfo, VehicleStatus).join(
+            VehicleStatus, VehicleInfo.plate_number == VehicleStatus.plate_number
+        ).filter(
+            VehicleInfo.vehicle_type == task.task_type,
+            VehicleStatus.current_status == "IDLE",
+        ).all()
 
-        # 等级匹配
-        if task.required_variant:
-            query = query.filter_by(variant=task.required_variant)
+        if not candidates:
+            return None
 
-        candidates = query.all()
+        # 机型兼容过滤
+        compatible = []
+        for vinfo, vstat in candidates:
+            compat_list = _get_model_compatible_aircraft(vinfo.brand_model)
+            if not compat_list or flight.aircraft_type in compat_list:
+                compatible.append((vinfo, vstat))
 
-        # 机型适配验证
-        if flight.aircraft_type:
-            aircraft = AircraftCatalog.get(flight.aircraft_type)
-            if aircraft:
-                candidates = [
-                    v for v in candidates
-                    if self._check_variant_compatibility(v, aircraft)
-                ]
+        if not compatible:
+            return None
 
         # 区域优先
-        for v in candidates:
-            if v.region_id == flight.region_id:
-                return v
+        for vinfo, vstat in compatible:
+            if vinfo.region == flight.region.code:
+                return vinfo.plate_number
 
-        return candidates[0] if candidates else None
-
-    @staticmethod
-    def _check_variant_compatibility(vehicle: Vehicle, aircraft) -> bool:
-        """验证车辆 variant 的技术参数是否满足该机型要求.
-
-        从 vehicle_catalog.json 读取 variant 的技术约束，与 aircraft 参数比对。
-        """
-        variant_spec = _find_variant_spec(vehicle.type, vehicle.variant)
-        if not variant_spec:
-            return True  # 查不到规格默认放行
-
-        # TOW: 检查 compatible_max_aircraft_t
-        if vehicle.type == "TOW":
-            max_aircraft_t = variant_spec.get("compatible_max_aircraft_t")
-            if max_aircraft_t and aircraft.max_takeoff_t > max_aircraft_t:
-                return False
-
-        # STAIR: 检查 max_height_m
-        if vehicle.type == "STAIR":
-            max_height = variant_spec.get("compatible_door_height_max_m")
-            if max_height and aircraft.door_height_m > max_height:
-                return False
-
-        return True
+        return compatible[0][0].plate_number
 
     @staticmethod
     def _dependency_met(depends_on_task_id: int) -> bool:

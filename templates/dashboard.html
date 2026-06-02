@@ -2,25 +2,23 @@
 {% block title %}调度看板 — 无锡硕放机场地面车辆调度系统{% endblock %}
 {% block content %}
 
-{% set task_type_names = {'TOW': '牵引', 'GPU': '电源', 'STAIR': '客梯', 'BUS': '摆渡', 'FUEL': '加油', 'BAG': '行李', 'CLEAN': '清洁'} %}
-{% set vtype_names = {'TOW': '牵引车', 'GPU': '电源车', 'STAIR': '客梯车', 'BUS': '摆渡车', 'FUEL': '加油车', 'BAG': '行李车', 'CLEAN': '清洁车'} %}
-{% set vtype_icons = {'TOW': '🚜', 'GPU': '🔌', 'STAIR': '🪜', 'BUS': '🚌', 'FUEL': '⛽', 'BAG': '🧳', 'CLEAN': '🧹'} %}
+{% set task_type_names = {'TOW': '牵引', 'GPU': '电源', 'STAIR': '客梯', 'BUS': '摆渡', 'FUEL': '加油', 'BAG': '行李'} %}
+{% set vtype_names = {'TOW': '牵引车', 'GPU': '电源车', 'STAIR': '客梯车', 'BUS': '摆渡车', 'FUEL': '加油车', 'BAG': '行李车'} %}
+{% set vtype_icons = {'TOW': '🚜', 'GPU': '🔌', 'STAIR': '🪜', 'BUS': '🚌', 'FUEL': '⛽', 'BAG': '🧳'} %}
 {% set vstatus_map = {
     'IDLE': ('green', '空闲'),
     'ASSIGNED': ('yellow', '已分配'),
-    'CONFIRMED': ('blue', '已确认'),
     'BUSY': ('purple', '工作中'),
-    'REFUELING': ('orange', '回补中'),
     'MAINTENANCE': ('yellow', '维修中')
 } %}
 
-{% set task_type_colors = {'TOW': '#a855f7', 'GPU': '#f59e0b', 'STAIR': '#3b82f6', 'BUS': '#10b981', 'FUEL': '#eab308', 'BAG': '#22c55e', 'CLEAN': '#ef4444'} %}
+{% set task_type_colors = {'TOW': '#a855f7', 'GPU': '#f59e0b', 'STAIR': '#3b82f6', 'BUS': '#10b981', 'FUEL': '#eab308', 'BAG': '#22c55e'} %}
 
-{# ── 车辆类型概览栏（header 下方） ── #}
+{# ── 车辆类型概览栏 ── #}
 <div class="vtype-bar">
     {% for code, name in vtype_names.items() %}
-    {% set tv = vehicles | selectattr("type", "equalto", code) | list %}
-    {% set idle_v = tv | selectattr("status", "equalto", "IDLE") | list | length %}
+    {% set tv = vehicles | selectattr("0.vehicle_type", "equalto", code) | list %}
+    {% set idle_v = tv | selectattr("1.current_status", "equalto", "IDLE") | list | length %}
     <div class="vtype-section">
         <div class="vtype-head">
             <span class="vtype-icon">{{ vtype_icons[code] }}</span>
@@ -31,17 +29,21 @@
         </div>
         <div class="vtype-body">
             {% if tv %}
-            {% for v in tv %}
-            {% set vi, vl = vstatus_map.get(v.status, ('gray', v.status)) %}
-            <div class="vtype-item{% if v.status == 'IDLE' %} draggable{% endif %}"
-                 {% if v.status == 'IDLE' %}
+            {% for vinfo, vstat in tv %}
+            {% set vi, vl = vstatus_map.get(vstat.current_status, ('gray', vstat.current_status)) %}
+            <div class="vtype-item{% if vstat.current_status == 'IDLE' %} draggable{% endif %}"
+                 {% if vstat.current_status == 'IDLE' %}
                  draggable="true"
-                 data-vehicle-id="{{ v.id }}"
-                 data-vehicle-type="{{ v.type }}"
-                 data-vehicle-plate="{{ v.plate }}"
+                 data-plate-number="{{ vinfo.plate_number }}"
+                 data-vehicle-type="{{ vinfo.vehicle_type }}"
+                 data-plate-number="{{ vinfo.plate_number }}"
                  ondragstart="onDragStart(event)"
                  {% endif %}>
-                <span class="vtype-plate">{{ v.plate }}</span>
+                <span class="vtype-plate">{{ vinfo.plate_number }}</span>
+                {% if vinfo.size_class %}
+                <span class="vtype-size size-lbl-{{ vinfo.size_class }}">{{ vinfo.size_class }}</span>
+                {% endif %}
+                <span class="vtype-spacer"></span>
                 <span class="indicator indicator-{{ vi }}">{{ vl }}</span>
             </div>
             {% endfor %}
@@ -89,7 +91,7 @@
                 {% set minutes_left = ((flight.scheduled_at - now).total_seconds() / 60) | int %}
                 {% set urg_cls = 'urg-red' if minutes_left < 30 else ('urg-yellow' if minutes_left < 60 else 'urg-green') %}
                 {% set total = fg.tasks | length %}
-                {% set assigned = fg.tasks | selectattr('vehicle_id') | list | length %}
+                {% set assigned = fg.tasks | selectattr('plate_number') | list | length %}
                 <div class="fcard {{ urg_cls }}" data-gate="{{ flight.gate.code if flight.gate else '' }}" data-flight-no="{{ flight.flight_no }}">
                     <div class="fcard-header" onclick="toggleFlight(this)">
                         <div class="fcard-top">
@@ -115,8 +117,8 @@
                              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
                             <span class="ftask-icon">{{ vtype_icons.get(task.task_type, '') }}</span>
                             <span class="ftask-type">{{ task_type_names.get(task.task_type, task.task_type) }}</span>
-                            {% if task.vehicle_id %}
-                            <span class="ftask-vehicle">{{ task.vehicle.plate }}</span>
+                            {% if task.plate_number %}
+                            <span class="ftask-vehicle">{{ task.plate_number }}</span>
                             {% else %}
                             <span class="ftask-status">待分配</span>
                             {% endif %}
@@ -169,20 +171,9 @@
                                 <td class="cell-flight">{{ t.flight.flight_no if t.flight else '--' }}</td>
                                 <td>{{ t.flight.gate.code if t.flight and t.flight.gate else '--' }}</td>
                                 <td><span class="task-tag tag-{{ t.task_type }}">{{ task_type_names.get(t.task_type, t.task_type) }}</span></td>
-                                <td class="cell-vehicle">{{ t.vehicle.plate if t.vehicle else '--' }}</td>
+                                <td class="cell-vehicle">{{ t.plate_number or '--' }}</td>
                                 <td class="cell-time">{{ t.scheduled_start.strftime('%H:%M') if t.scheduled_start else '--' }}</td>
-                                <td>
-                                    {% set vs = t.vehicle.status if t.vehicle else '' %}
-                                    {% if vs == 'ASSIGNED' %}
-                                    <span class="indicator indicator-yellow">已分配</span>
-                                    {% elif vs == 'CONFIRMED' %}
-                                    <span class="indicator indicator-blue">已确认</span>
-                                    {% elif vs == 'BUSY' %}
-                                    <span class="indicator indicator-purple">工作中</span>
-                                    {% else %}
-                                    <span class="indicator indicator-purple">进行中</span>
-                                    {% endif %}
-                                </td>
+                                <td><span class="indicator indicator-purple">进行中</span></td>
                             </tr>
                             {% endfor %}
                         </tbody>

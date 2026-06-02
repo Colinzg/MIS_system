@@ -14,7 +14,6 @@ class Region(db.Model):
     name = db.Column(db.String(64), nullable=False, comment="区域名称，如 1号航站楼东侧")
 
     # relationships
-    vehicles = db.relationship("Vehicle", back_populates="region", lazy="dynamic")
     flights = db.relationship("Flight", back_populates="region", lazy="dynamic")
 
     def __repr__(self):

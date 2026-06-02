@@ -1,0 +1,144 @@
+[
+  {
+    "vehicle_type": "TOW",
+    "name": "牵引车",
+    "service_mode": "ONE_TO_ONE",
+    "constraints": {
+      "must_be_last": true,
+      "note": "必须在所有其他保障完成后执行，是所有地面服务的最后一步。"
+    },
+    "models": [
+      {
+        "brand_model": "威海广泰 WGQY-20",
+        "manufacturer": "威海广泰",
+        "size_class": "小型",
+        "towing_force_kn": 160,
+        "compatible_aircraft": ["A320", "B737"],
+        "base_duration_min": 10
+      },
+      {
+        "brand_model": "TLD TMX-350",
+        "manufacturer": "TLD",
+        "size_class": "大型",
+        "towing_force_kn": 350,
+        "compatible_aircraft": ["A330", "B777"],
+        "base_duration_min": 15
+      }
+    ]
+  },
+  {
+    "vehicle_type": "GPU",
+    "name": "地面电源车",
+    "service_mode": "ONE_TO_ONE",
+    "constraints": {
+      "long_occupancy": true,
+      "note": "全程连接，属于长时占用型车辆。最早接入、最晚断开。"
+    },
+    "models": [
+      {
+        "brand_model": "威海广泰 WGJD-90",
+        "manufacturer": "威海广泰",
+        "size_class": "小型",
+        "power_kva": 90,
+        "compatible_aircraft": ["A320", "B737"],
+        "base_duration_min": 60
+      },
+      {
+        "brand_model": "威海广泰 WGJD-180",
+        "manufacturer": "威海广泰",
+        "size_class": "大型",
+        "power_kva": 140,
+        "compatible_aircraft": ["A330", "B777"],
+        "base_duration_min": 60
+      }
+    ]
+  },
+  {
+    "vehicle_type": "STAIR",
+    "name": "客梯车",
+    "service_mode": "ONE_TO_ONE",
+    "constraints": {
+      "height_must_match": true,
+      "conditional_on_gate": true,
+      "note": "仅在无廊桥停机位需要。高度必须大于等于飞机舱门高度。"
+    },
+    "models": [
+      {
+        "brand_model": "威海广泰 WGKT-44",
+        "manufacturer": "威海广泰",
+        "size_class": "标准",
+        "max_height_m": 4.4,
+        "compatible_aircraft": ["A320", "B737"],
+        "base_duration_min": 5
+      },
+      {
+        "brand_model": "威海广泰 WGKT-58",
+        "manufacturer": "威海广泰",
+        "size_class": "高升程",
+        "max_height_m": 5.8,
+        "compatible_aircraft": ["A330", "B777"],
+        "base_duration_min": 8
+      }
+    ]
+  },
+  {
+    "vehicle_type": "BUS",
+    "name": "旅客摆渡车",
+    "service_mode": "ONE_TO_ONE",
+    "constraints": {
+      "strict_one_flight": true,
+      "conditional_on_gate": true,
+      "note": "仅在无廊桥停机位需要。一辆车一次只能运输一个航班旅客，不能混装。"
+    },
+    "models": [
+      {
+        "brand_model": "宇通 ZK6140BD",
+        "manufacturer": "宇通客车",
+        "size_class": "大型",
+        "passenger_capacity": 110,
+        "compatible_aircraft": ["A320", "B737", "A330", "B777"],
+        "base_duration_min": 12
+      }
+    ]
+  },
+  {
+    "vehicle_type": "FUEL",
+    "name": "加油车",
+    "service_mode": "ONE_TO_ONE",
+    "constraints": {
+      "capacity_exhaustion": true,
+      "refill_duration_min": 10,
+      "note": "油量耗尽后必须返回油库补充。加油期间附近区域禁止明火作业。加油栓式，连接机位地井与飞机。"
+    },
+    "models": [
+      {
+        "brand_model": "上海承飞 CF-GL-250",
+        "manufacturer": "上海承飞",
+        "size_class": "标准",
+        "fuel_type": "加油栓车",
+        "compatible_aircraft": ["A320", "B737", "A330", "B777"],
+        "base_duration_min": 25
+      }
+    ]
+  },
+  {
+    "vehicle_type": "BAG",
+    "name": "行李拖车",
+    "service_mode": "ONE_TO_MANY",
+    "constraints": {
+      "capacity_exhaustion": true,
+      "unload_duration_min": 10,
+      "note": "车厢满后需先前往行李分拣区卸空，满载约束影响连续任务分配。"
+    },
+    "models": [
+      {
+        "brand_model": "威海广泰 WGDT-25",
+        "manufacturer": "威海广泰",
+        "size_class": "标准",
+        "towing_capacity_t": 25,
+        "compatible_aircraft": ["A320", "B737", "A330", "B777"],
+        "base_duration_min": 15
+      }
+    ]
+  }
+]

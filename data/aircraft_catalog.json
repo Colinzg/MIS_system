@@ -118,35 +118,5 @@
       "cabin_doors": 8
     },
     "description": "全球最大双发客机，搭载 GE90 系列发动机，以超长航程和燃油经济性著称。"
-  },
-  {
-    "type": "A380",
-    "name": "Airbus A380",
-    "manufacturer": "空中客车 (Airbus)",
-    "category": "四发双层超大型客机",
-    "dimensions": {
-      "length_m": 72.72,
-      "wingspan_m": 79.75,
-      "height_m": 24.09,
-      "door_height_m": 8.0
-    },
-    "weight": {
-      "max_takeoff_t": 575.0,
-      "max_landing_t": 394.0
-    },
-    "performance": {
-      "range_km": 14800,
-      "cruise_speed": "Mach 0.85"
-    },
-    "capacity": {
-      "seats": "525-853",
-      "typical_passengers": 525,
-      "fuel_capacity_l": 323000
-    },
-    "technical": {
-      "engines": 4,
-      "cabin_doors": 16
-    },
-    "description": "全球唯一全双层客舱的超大型客机，四发配置，对地面保障设备要求最高。"
   }
 ]

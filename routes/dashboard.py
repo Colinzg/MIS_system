@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from flask import render_template
 from models.flight import Flight
 from models.task import Task
-from models.vehicle import Vehicle
+from models.vehicle import VehicleInfo, VehicleStatus
+from models import db
 from . import dashboard_bp
 
 
@@ -21,7 +22,9 @@ def dashboard():
     active_tasks = Task.query.filter_by(status="IN_PROGRESS").join(Task.flight).order_by(
         Flight.scheduled_at.asc()
     ).all()
-    vehicles = Vehicle.query.order_by(Vehicle.type, Vehicle.plate).all()
+    vehicles = db.session.query(VehicleInfo, VehicleStatus).join(
+        VehicleStatus, VehicleInfo.plate_number == VehicleStatus.plate_number
+    ).order_by(VehicleInfo.vehicle_type, VehicleInfo.plate_number).all()
 
     flight_groups = []
     for task in pending:

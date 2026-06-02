@@ -60,13 +60,13 @@ function expandAll() {
 
 /* ── 拖拽分配车辆 ──────────────────────── */
 function onDragStart(e) {
-    var el = e.target.closest('[data-vehicle-id]');
+    var el = e.target.closest('[data-plate-number]');
     if (!el) return;
     if (!el.classList.contains('vtype-item')) return;
     var data = {
-        vehicle_id: el.dataset.vehicleId,
+        plate_number: el.dataset.plateNumber,
         vehicle_type: el.dataset.vehicleType,
-        vehicle_plate: el.dataset.vehiclePlate,
+        plate_number: el.dataset.plateNumber,
     };
     e.dataTransfer.setData('text/plain', JSON.stringify(data));
     e.dataTransfer.effectAllowed = 'move';
@@ -115,12 +115,12 @@ function onDrop(e) {
     fetch('/api/assign-task', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({task_id: parseInt(taskId), vehicle_id: parseInt(veh.vehicle_id)}),
+        body: JSON.stringify({task_id: parseInt(taskId), plate_number: veh.plate_number}),
     })
     .then(function(r) { return r.json(); })
     .then(function(resp) {
         if (resp.ok) {
-            showFlash('success', '已分配 ' + veh.vehicle_plate + ' → 任务 #' + taskId);
+            showFlash('success', '已分配 ' + veh.plate_number + ' → 任务 #' + taskId);
             setTimeout(function() { smoothReload(); }, 800);
         } else {
             showFlash('error', resp.error || '分配失败');

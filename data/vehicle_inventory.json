@@ -1,0 +1,36 @@
+[
+  {"plate_number": "民航-B2001", "vehicle_type": "TOW", "brand_model": "威海广泰 WGQY-20", "size_class": "小型", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-TOW-2024-001", "remark": "A区小型牵引，适配窄体机"},
+  {"plate_number": "民航-B2002", "vehicle_type": "TOW", "brand_model": "威海广泰 WGQY-20", "size_class": "小型", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-TOW-2024-002", "remark": "A区小型牵引，适配窄体机"},
+  {"plate_number": "民航-B2003", "vehicle_type": "TOW", "brand_model": "威海广泰 WGQY-20", "size_class": "小型", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-TOW-2024-003", "remark": "A区小型牵引，适配窄体机"},
+  {"plate_number": "民航-B2004", "vehicle_type": "TOW", "brand_model": "威海广泰 WGQY-20", "size_class": "小型", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-TOW-2024-004", "remark": "B区小型牵引，适配窄体机"},
+  {"plate_number": "民航-B2005", "vehicle_type": "TOW", "brand_model": "威海广泰 WGQY-20", "size_class": "小型", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-TOW-2024-005", "remark": "B区小型牵引，适配窄体机"},
+  {"plate_number": "民航-B2006", "vehicle_type": "TOW", "brand_model": "TLD TMX-350", "size_class": "大型", "region": "B", "purchase_date": "2024-06-10", "asset_tag": "WX-TOW-2024-006", "remark": "B区大型牵引，专拖宽体机（仅B远机位）"},
+
+  {"plate_number": "民航-B2007", "vehicle_type": "GPU", "brand_model": "威海广泰 WGJD-90", "size_class": "小型", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-GPU-2024-001", "remark": "90kVA，适配窄体机（远机位专用）"},
+  {"plate_number": "民航-B2008", "vehicle_type": "GPU", "brand_model": "威海广泰 WGJD-90", "size_class": "小型", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-GPU-2024-002", "remark": "90kVA，适配窄体机（远机位专用）"},
+  {"plate_number": "民航-B2009", "vehicle_type": "GPU", "brand_model": "威海广泰 WGJD-90", "size_class": "小型", "region": "B", "purchase_date": "2024-06-01", "asset_tag": "WX-GPU-2024-003", "remark": "90kVA，适配窄体机（远机位专用）"},
+  {"plate_number": "民航-B2010", "vehicle_type": "GPU", "brand_model": "威海广泰 WGJD-180", "size_class": "大型", "region": "B", "purchase_date": "2024-06-10", "asset_tag": "WX-GPU-2024-004", "remark": "140kVA，可覆盖宽体机（远机位专用）"},
+  {"plate_number": "民航-B2011", "vehicle_type": "GPU", "brand_model": "威海广泰 WGJD-180", "size_class": "大型", "region": "B", "purchase_date": "2024-06-10", "asset_tag": "WX-GPU-2024-005", "remark": "140kVA，可覆盖宽体机（远机位专用）"},
+
+  {"plate_number": "民航-B2012", "vehicle_type": "STAIR", "brand_model": "威海广泰 WGKT-44", "size_class": "标准", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-STAIR-2024-001", "remark": "工作高度4.4m，适配窄体机（远机位专用）"},
+  {"plate_number": "民航-B2013", "vehicle_type": "STAIR", "brand_model": "威海广泰 WGKT-44", "size_class": "标准", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-STAIR-2024-002", "remark": "工作高度4.4m，适配窄体机（远机位专用）"},
+  {"plate_number": "民航-B2014", "vehicle_type": "STAIR", "brand_model": "威海广泰 WGKT-58", "size_class": "高升程", "region": "B", "purchase_date": "2024-06-10", "asset_tag": "WX-STAIR-2024-003", "remark": "工作高度5.8m，可覆盖宽体机（远机位专用）"},
+
+  {"plate_number": "民航-B2015", "vehicle_type": "BUS", "brand_model": "宇通 ZK6140BD", "size_class": "大型", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-BUS-2024-001", "remark": "载客110人（远机位专用）"},
+  {"plate_number": "民航-B2016", "vehicle_type": "BUS", "brand_model": "宇通 ZK6140BD", "size_class": "大型", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-BUS-2024-002", "remark": "载客110人（远机位专用）"},
+  {"plate_number": "民航-B2017", "vehicle_type": "BUS", "brand_model": "宇通 ZK6140BD", "size_class": "大型", "region": "B", "purchase_date": "2024-06-10", "asset_tag": "WX-BUS-2024-003", "remark": "载客110人（远机位专用）"},
+
+  {"plate_number": "民航-B2018", "vehicle_type": "FUEL", "brand_model": "上海承飞 CF-GL-250", "size_class": "标准", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-FUEL-2024-001", "remark": "加油栓车，A区"},
+  {"plate_number": "民航-B2019", "vehicle_type": "FUEL", "brand_model": "上海承飞 CF-GL-250", "size_class": "标准", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-FUEL-2024-002", "remark": "加油栓车，A区"},
+  {"plate_number": "民航-B2020", "vehicle_type": "FUEL", "brand_model": "上海承飞 CF-GL-250", "size_class": "标准", "region": "B", "purchase_date": "2024-06-01", "asset_tag": "WX-FUEL-2024-003", "remark": "加油栓车，B区"},
+  {"plate_number": "民航-B2021", "vehicle_type": "FUEL", "brand_model": "上海承飞 CF-GL-250", "size_class": "标准", "region": "B", "purchase_date": "2024-06-01", "asset_tag": "WX-FUEL-2024-004", "remark": "加油栓车，B区"},
+
+  {"plate_number": "民航-B2022", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-BAG-2024-001", "remark": "25吨级行李拖车，A区"},
+  {"plate_number": "民航-B2023", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "A", "purchase_date": "2024-03-15", "asset_tag": "WX-BAG-2024-002", "remark": "25吨级行李拖车，A区"},
+  {"plate_number": "民航-B2024", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "A", "purchase_date": "2024-06-01", "asset_tag": "WX-BAG-2024-003", "remark": "25吨级行李拖车，A区"},
+  {"plate_number": "民航-B2025", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "A", "purchase_date": "2024-06-01", "asset_tag": "WX-BAG-2024-004", "remark": "25吨级行李拖车，A区"},
+  {"plate_number": "民航-B2026", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-BAG-2024-005", "remark": "25吨级行李拖车，B区"},
+  {"plate_number": "民航-B2027", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "B", "purchase_date": "2024-03-15", "asset_tag": "WX-BAG-2024-006", "remark": "25吨级行李拖车，B区"},
+  {"plate_number": "民航-B2028", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "B", "purchase_date": "2024-06-01", "asset_tag": "WX-BAG-2024-007", "remark": "25吨级行李拖车，B区"},
+  {"plate_number": "民航-B2029", "vehicle_type": "BAG", "brand_model": "威海广泰 WGDT-25", "size_class": "标准", "region": "B", "purchase_date": "2024-06-01", "asset_tag": "WX-BAG-2024-008", "remark": "25吨级行李拖车，B区"}
+]

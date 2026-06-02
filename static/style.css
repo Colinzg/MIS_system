@@ -301,6 +301,20 @@ body {
     color: var(--text-primary);
 }
 
+.vtype-size {
+    font-size: .65rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 4px;
+}
+.size-lbl-小型   { background: #dcfce7; color: #166534; }
+.size-lbl-中型   { background: #fef3c7; color: #92400e; }
+.size-lbl-大型   { background: #ede9fe; color: #6b21a8; }
+.size-lbl-标准   { background: #dbeafe; color: #1e40af; }
+.size-lbl-高升程 { background: #ffe4e6; color: #9f1239; }
+.vtype-spacer { flex: 1; }
 .vtype-item .indicator { font-size: .7rem; }
 
 .vtype-empty {

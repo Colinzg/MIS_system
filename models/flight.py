@@ -31,6 +31,9 @@ class Flight(db.Model):
         nullable=True,
         comment="所在区域（冗余，可通过 gate 推导）",
     )
+    needs_fuel = db.Column(
+        db.Boolean, default=False, comment="是否需要加油；非刚性需求，由航司决定"
+    )
     status = db.Column(
         db.String(16),
         default="SCHEDULED",

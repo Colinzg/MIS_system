@@ -5,17 +5,19 @@
 ```
 MIS_system/
 │
-├── data/                               # 领域知识库（静态数据，JSON）
-│   ├── aircraft_catalog.json           #   6 种机型技术参数
-│   ├── vehicle_catalog.json            #   7 种车辆技术参数（含等级 variants）
-│   └── airport_layout.json             #   机场布局：区域、停机位、路网拓扑
+├── data/                               # 参考数据（JSON，通过 seed.py 导入数据库）
+│   ├── aircraft_catalog.json           #   4 种机型技术参数
+│   ├── vehicle_models.json             #   6 种车辆型号技术参数
+│   ├── vehicle_inventory.json          #   本机场车辆清单（每台车的静态信息）
+│   ├── airport_physical.json           #   机场物理布局：区域、停机位、路网拓扑
+│   └── airport_display.json            #   态势图显示坐标
 │
 ├── models/                             # 数据模型
 │   ├── __init__.py                     #   db = SQLAlchemy()，统一导入所有模型
 │   ├── region.py                       #   Region — 机场区域
 │   ├── gate.py                         #   Gate — 停机位（含 has_jet_bridge）
-│   ├── vehicle.py                      #   Vehicle — 车辆实例（type + variant + status）
-│   ├── flight.py                       #   Flight — 航班（关联 gate_id）
+│   ├── vehicle.py                      #   VehicleInfo + VehicleStatus — 车辆静态/动态
+│   ├── flight.py                       #   Flight — 航班（关联 gate_id, needs_fuel）
 │   ├── task.py                         #   Task — 保障任务（含 depends_on 依赖链）
 │   ├── road_network.py                 #   RoadNode, RoadEdge — 路网
 │   ├── comm_log.py                     #   CommunicationLog — 调度中心与车载终端通讯

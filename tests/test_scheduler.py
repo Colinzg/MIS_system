@@ -4,7 +4,7 @@ from app import create_app
 from models import db
 from models.region import Region
 from models.gate import Gate
-from models.vehicle import Vehicle
+from models.vehicle import VehicleInfo, VehicleStatus
 from models.flight import Flight
 from models.task import Task
 from services.scheduler import Scheduler
@@ -33,9 +33,11 @@ def sample_data(app):
         db.session.add(g)
         db.session.flush()
 
-        v = Vehicle(plate="京T-TEST1", type="GPU", variant="通用型",
-                    status="IDLE", region_id=r.id)
-        db.session.add(v)
+        vi = VehicleInfo(plate_number="京T-TEST1", vehicle_type="GPU",
+                         brand_model="TLD GPU-140", region="A")
+        db.session.add(vi)
+        vs = VehicleStatus(plate_number="京T-TEST1", current_status="IDLE")
+        db.session.add(vs)
         db.session.flush()
 
         f = Flight(flight_no="TEST001", airline="测试航", aircraft_type="A320",
@@ -43,13 +45,11 @@ def sample_data(app):
         db.session.add(f)
         db.session.flush()
 
-        # 创建一个 GPU 的 PENDING 任务
-        t = Task(flight_id=f.id, task_type="GPU", required_variant="通用型",
-                 status="PENDING")
+        t = Task(flight_id=f.id, task_type="GPU", status="PENDING")
         db.session.add(t)
         db.session.commit()
 
-        yield {"region": r, "gate": g, "vehicle": v, "flight": f, "task": t}
+        yield {"region": r, "gate": g, "flight": f, "task": t}
 
 
 class TestScheduler:
@@ -64,11 +64,3 @@ class TestScheduler:
             scheduler = Scheduler()
             with pytest.raises(ValueError):
                 scheduler.schedule_for_flight(9999)
-
-    def test_variant_matching(self, sample_data):
-        """调度时匹配车辆等级."""
-        scheduler = Scheduler()
-        result = scheduler.schedule_for_flight(sample_data["flight"].id)
-        # 任务 required_variant="通用型", 车辆 variant="通用型" → 匹配
-        assigned = [t for t in result["tasks"] if t["vehicle_id"] is not None]
-        assert len(assigned) >= 0  # 可能有也可能没有匹配（取决于是否有 PENDING 任务）

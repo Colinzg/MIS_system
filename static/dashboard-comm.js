@@ -1,6 +1,6 @@
 /* ── 调度面板 — 车载终端通讯 ───────────── */
 
-var COMM_VEHICLE_ID = null;
+var COMM_PLATE = null;
 var COMM_LAST_TIME = null;
 var COMM_POLL_ID = null;
 
@@ -25,28 +25,28 @@ function loadCommVehicles() {
             var u = resp.unread[vid];
             totalUnread += u.unread;
             var item = document.createElement('div');
-            item.className = 'comm-vitem' + (COMM_VEHICLE_ID == vid ? ' comm-vitem-active' : '');
+            item.className = 'comm-vitem' + (COMM_PLATE == vid ? ' comm-vitem-active' : '');
             item.innerHTML =
                 '<span class="comm-vitem-icon">' + (u.icon || '🚛') + '</span>' +
                 '<span class="comm-vitem-info">' +
-                    '<span class="comm-vitem-plate">' + u.plate + '</span>' +
+                    '<span class="comm-vitem-plate">' + u.plate_number + '</span>' +
                     '<span class="comm-vitem-status indicator indicator-' + (VSTATUS_MAP[u.status] ? VSTATUS_MAP[u.status][0] : 'gray') + '">' + (VSTATUS_MAP[u.status] ? VSTATUS_MAP[u.status][1] : u.status) + '</span>' +
                 '</span>' +
                 (u.unread > 0 ? '<span class="comm-vitem-badge">' + u.unread + '</span>' : '');
-            item.onclick = function(id) { return function() { selectCommVehicle(id); }; }(parseInt(vid));
+            item.onclick = function(id) { return function() { selectCommVehicle(id); }; }(vid);
             bar.appendChild(item);
         }
         document.getElementById('unreadBadge').textContent = totalUnread + ' 待处理';
     });
 }
 
-function selectCommVehicle(vehicleId) {
-    COMM_VEHICLE_ID = vehicleId;
+function selectCommVehicle(plateNo) {
+    COMM_PLATE = plateNo;
     COMM_LAST_TIME = null;
     loadCommVehicles();
     var box = document.getElementById('commLogBox');
     box.innerHTML = '<div class="comm-empty">加载中...</div>';
-    fetch('/api/comm/history?vehicle_id=' + vehicleId)
+    fetch('/api/comm/history?plate_number=' + plateNo)
     .then(function(r) { return r.json(); })
     .then(function(resp) {
         if (!resp.ok) return;
@@ -62,8 +62,8 @@ function selectCommVehicle(vehicleId) {
 }
 
 function pollCommMessages() {
-    if (!COMM_VEHICLE_ID) return;
-    var url = '/api/comm/history?vehicle_id=' + COMM_VEHICLE_ID;
+    if (!COMM_PLATE) return;
+    var url = '/api/comm/history?plate_number=' + COMM_PLATE;
     if (COMM_LAST_TIME) url += '&since=' + encodeURIComponent(COMM_LAST_TIME);
     fetch(url)
     .then(function(r) { return r.json(); })
@@ -79,7 +79,7 @@ function appendCommMsg(msg) {
     if (box.querySelector('.comm-empty')) box.innerHTML = '';
     var div = document.createElement('div');
     div.className = 'comm-msg comm-msg-' + msg.sender.toLowerCase();
-    var label = msg.sender === 'DISPATCH' ? '📡 调度中心' : '🚛 ' + (msg.vehicle_plate || '车辆');
+    var label = msg.sender === 'DISPATCH' ? '📡 调度中心' : '🚛 ' + (msg.plate_number || '车辆');
     div.innerHTML = '<div class="comm-msg-meta">' + label + ' ' + msg.created_at + '</div>' +
                     '<div class="comm-msg-body">' + escapeHtml(msg.content) + '</div>';
     box.appendChild(div);
@@ -89,8 +89,8 @@ function appendCommMsg(msg) {
 function sendDispatch() {
     var input = document.getElementById('commInput');
     var content = input.value.trim();
-    if (!content || !COMM_VEHICLE_ID) {
-        if (!COMM_VEHICLE_ID) showFlash('error', '请先选择车辆');
+    if (!content || !COMM_PLATE) {
+        if (!COMM_PLATE) showFlash('error', '请先选择车辆');
         return;
     }
     input.value = '';
@@ -98,7 +98,7 @@ function sendDispatch() {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-            vehicle_id: COMM_VEHICLE_ID,
+            plate_number: COMM_PLATE,
             sender: 'DISPATCH',
             content: content,
         }),

@@ -44,7 +44,7 @@ class Monitor:
         Returns:
             [{"task_id": int, "flight_id": int, "task_type": str}, ...]
         """
-        tasks = Task.query.filter_by(status="PENDING", vehicle_id=None).all()
+        tasks = Task.query.filter_by(status="PENDING", plate_number=None).all()
         return [
             {"task_id": t.id, "flight_id": t.flight_id, "task_type": t.task_type}
             for t in tasks

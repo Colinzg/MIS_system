@@ -1,0 +1,65 @@
+{
+  "airport_name": "无锡硕放机场",
+  "description": "机场物理建模数据：区域划分、停机位属性、路网拓扑。路网简化为以停车场为枢纽的星型拓扑，加油采用加油栓式（无需油库节点）。",
+
+  "regions": [
+    { "code": "A", "name": "A 区（1号航站楼，全部廊桥）" },
+    { "code": "B", "name": "B 区（2号航站楼，含远机位 B05-B08）" }
+  ],
+
+  "gates": {
+    "A": [
+      { "code": "A01", "has_jet_bridge": true },
+      { "code": "A02", "has_jet_bridge": true },
+      { "code": "A03", "has_jet_bridge": true },
+      { "code": "A04", "has_jet_bridge": true },
+      { "code": "A05", "has_jet_bridge": true },
+      { "code": "A06", "has_jet_bridge": true },
+      { "code": "A07", "has_jet_bridge": true },
+      { "code": "A08", "has_jet_bridge": true }
+    ],
+    "B": [
+      { "code": "B01", "has_jet_bridge": true },
+      { "code": "B02", "has_jet_bridge": true },
+      { "code": "B03", "has_jet_bridge": true },
+      { "code": "B04", "has_jet_bridge": true },
+      { "code": "B05", "has_jet_bridge": false },
+      { "code": "B06", "has_jet_bridge": false },
+      { "code": "B07", "has_jet_bridge": false },
+      { "code": "B08", "has_jet_bridge": false }
+    ]
+  },
+
+  "nodes": [
+    { "code": "PARKING_A", "name": "A区停车场",           "type": "PARKING",          "region": "A" },
+    { "code": "PARKING_B", "name": "B区停车场",           "type": "PARKING",          "region": "B" },
+    { "code": "BAG_A",     "name": "A区行李分拣区",       "type": "SERVICE_STATION",  "region": "A" },
+    { "code": "BAG_B",     "name": "B区行李分拣区",       "type": "SERVICE_STATION",  "region": "B" },
+    { "code": "BUS_HUB",   "name": "B区摆渡车上客点",     "type": "SERVICE_STATION",  "region": "B" }
+  ],
+
+  "edges": [
+    { "from": "A01", "to": "PARKING_A", "distance_m": 90, "duration_min": 0.5, "two_way": true },
+    { "from": "A02", "to": "PARKING_A", "distance_m": 80, "duration_min": 0.5, "two_way": true },
+    { "from": "A03", "to": "PARKING_A", "distance_m": 70, "duration_min": 0.4, "two_way": true },
+    { "from": "A04", "to": "PARKING_A", "distance_m": 60, "duration_min": 0.4, "two_way": true },
+    { "from": "A05", "to": "PARKING_A", "distance_m": 50, "duration_min": 0.3, "two_way": true },
+    { "from": "A06", "to": "PARKING_A", "distance_m": 40, "duration_min": 0.3, "two_way": true },
+    { "from": "A07", "to": "PARKING_A", "distance_m": 35, "duration_min": 0.2, "two_way": true },
+    { "from": "A08", "to": "PARKING_A", "distance_m": 30, "duration_min": 0.2, "two_way": true },
+
+    { "from": "B01", "to": "PARKING_B", "distance_m": 30, "duration_min": 0.2, "two_way": true },
+    { "from": "B02", "to": "PARKING_B", "distance_m": 35, "duration_min": 0.2, "two_way": true },
+    { "from": "B03", "to": "PARKING_B", "distance_m": 40, "duration_min": 0.3, "two_way": true },
+    { "from": "B04", "to": "PARKING_B", "distance_m": 50, "duration_min": 0.3, "two_way": true },
+    { "from": "B05", "to": "PARKING_B", "distance_m": 60, "duration_min": 0.4, "two_way": true },
+    { "from": "B06", "to": "PARKING_B", "distance_m": 70, "duration_min": 0.4, "two_way": true },
+    { "from": "B07", "to": "PARKING_B", "distance_m": 80, "duration_min": 0.5, "two_way": true },
+    { "from": "B08", "to": "PARKING_B", "distance_m": 90, "duration_min": 0.5, "two_way": true },
+
+    { "from": "PARKING_A", "to": "PARKING_B", "distance_m": 160, "duration_min": 1.0, "two_way": true },
+    { "from": "PARKING_A", "to": "BAG_A",     "distance_m": 30,  "duration_min": 0.2, "two_way": true },
+    { "from": "PARKING_B", "to": "BAG_B",     "distance_m": 30,  "duration_min": 0.2, "two_way": true },
+    { "from": "PARKING_B", "to": "BUS_HUB",   "distance_m": 40,  "duration_min": 0.3, "two_way": true }
+  ]
+}

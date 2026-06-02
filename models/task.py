@@ -1,6 +1,6 @@
 """Task — 航班保障任务.
 
-每个航班按 AircraftType.generate_tasks() 生成若干任务，涵盖 7 种车辆类型。
+每个航班按 AircraftType.generate_tasks() 生成若干任务，涵盖 6 种车辆类型。
 任务间通过 depends_on 形成依赖链，调度器按拓扑顺序分配。
 
 状态枚举: PENDING / IN_PROGRESS / COMPLETED / FAILED
@@ -16,21 +16,16 @@ class Task(db.Model):
     flight_id = db.Column(
         db.Integer, db.ForeignKey("flights.id"), nullable=False, comment="关联航班"
     )
-    vehicle_id = db.Column(
-        db.Integer,
-        db.ForeignKey("vehicles.id"),
+    plate_number = db.Column(
+        db.String(16),
+        db.ForeignKey("vehicle_info.plate_number"),
         nullable=True,
-        comment="分配的车辆",
+        comment="分配的车牌号",
     )
     task_type = db.Column(
         db.String(8),
         nullable=False,
-        comment="任务类型: TOW / GPU / STAIR / BUS / FUEL / BAG / CLEAN",
-    )
-    required_variant = db.Column(
-        db.String(16),
-        nullable=True,
-        comment="所需车辆等级，如 重型 / 高管型，调度器据此匹配车辆",
+        comment="任务类型: TOW / GPU / STAIR / BUS / FUEL / BAG",
     )
     scheduled_start = db.Column(db.DateTime, nullable=True, comment="计划开始时间")
     scheduled_end = db.Column(db.DateTime, nullable=True, comment="计划结束时间")
@@ -49,7 +44,7 @@ class Task(db.Model):
 
     # relationships
     flight = db.relationship("Flight", back_populates="tasks")
-    vehicle = db.relationship("Vehicle", back_populates="tasks")
+    vehicle = db.relationship("VehicleInfo", back_populates="tasks")
 
     def __repr__(self):
         return f"<Task {self.task_type} for flight#{self.flight_id}>"

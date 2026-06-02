@@ -1,16 +1,13 @@
 """基础数据维护子系统 — 维护航班、机位、路网、车辆等数据.
 
 职责 (对应 UC 矩阵):
-  - 创建: 航班信息、停机位、机场路网数据、车辆基础信息
-
-作为所有其他子系统的静态数据源，提供 CRUD 操作接口。
-注意: 保障规则不再由数据表维护，而是由 AircraftType Python 类承载。
+  - 创建: 航班信息、停机位、机场路网数据、车辆信息
 """
 from models import db
 from models.flight import Flight
 from models.gate import Gate
 from models.road_network import RoadNode, RoadEdge
-from models.vehicle import Vehicle
+from models.vehicle import VehicleInfo, VehicleStatus
 
 
 class DataMaintenance:
@@ -20,10 +17,12 @@ class DataMaintenance:
 
     @staticmethod
     def create_flight(flight_no: str, airline: str, aircraft_type: str,
-                      scheduled_at, gate_id: int = None, region_id: int = None) -> Flight:
+                      scheduled_at, gate_id: int = None, region_id: int = None,
+                      needs_fuel: bool = False) -> Flight:
         flight = Flight(
             flight_no=flight_no, airline=airline, aircraft_type=aircraft_type,
             scheduled_at=scheduled_at, gate_id=gate_id, region_id=region_id,
+            needs_fuel=needs_fuel,
         )
         db.session.add(flight)
         db.session.commit()
@@ -32,10 +31,8 @@ class DataMaintenance:
     # ── 停机位 ──────────────────────────────────────────
 
     @staticmethod
-    def create_gate(code: str, region_id: int, has_jet_bridge: bool = True,
-                    x: float = None, y: float = None) -> Gate:
-        gate = Gate(code=code, region_id=region_id, has_jet_bridge=has_jet_bridge,
-                    x=x, y=y)
+    def create_gate(code: str, region_id: int, has_jet_bridge: bool = True) -> Gate:
+        gate = Gate(code=code, region_id=region_id, has_jet_bridge=has_jet_bridge)
         db.session.add(gate)
         db.session.commit()
         return gate
@@ -65,10 +62,14 @@ class DataMaintenance:
     # ── 车辆 ────────────────────────────────────────────
 
     @staticmethod
-    def create_vehicle(plate: str, vehicle_type: str, variant: str = None,
-                       region_id: int = None, attributes: dict = None) -> Vehicle:
-        vehicle = Vehicle(plate=plate, type=vehicle_type, variant=variant,
-                          region_id=region_id, attributes=attributes)
-        db.session.add(vehicle)
+    def create_vehicle(plate_number: str, vehicle_type: str, brand_model: str,
+                       region: str = None) -> VehicleInfo:
+        vinfo = VehicleInfo(
+            plate_number=plate_number, vehicle_type=vehicle_type,
+            brand_model=brand_model, region=region,
+        )
+        db.session.add(vinfo)
+        vstat = VehicleStatus(plate_number=plate_number, current_status="IDLE")
+        db.session.add(vstat)
         db.session.commit()
-        return vehicle
+        return vinfo

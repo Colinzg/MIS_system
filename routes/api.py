@@ -1,13 +1,13 @@
 """态势图数据 API — 为机场地图提供实时位置数据.
 
-停机位和停车场坐标从 data/airport_layout.json 加载，
-与种子数据共享同一数据源。
+停机位和停车场坐标从 data/airport_display.json 加载（纯显示数据），
+物理属性（廊桥、路网等）由 data/airport_physical.json 提供，两者分离。
 """
 import json
 import os
 from datetime import datetime, timedelta
 from flask import jsonify, request
-from models.vehicle import Vehicle
+from models.vehicle import VehicleInfo, VehicleStatus
 from models.flight import Flight
 from models.task import Task
 from models.comm_log import CommunicationLog
@@ -17,28 +17,28 @@ from . import api_bp
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 
 
-def _load_layout():
-    path = os.path.join(DATA_DIR, "airport_layout.json")
+def _load_display():
+    path = os.path.join(DATA_DIR, "airport_display.json")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def _build_gate_coords():
-    """从 airport_layout.json 加载停机位坐标."""
-    layout = _load_layout()
+    """从 airport_display.json 加载停机位显示坐标."""
+    display = _load_display()
     coords = {}
-    for region_code, gates in layout["gates"].items():
-        for g in gates:
-            coords[g["code"]] = {"x": g["x"], "y": g["y"], "region": region_code}
+    for code, pos in display["gates"].items():
+        region = code[0]  # A01 → A
+        coords[code] = {"x": pos["x"], "y": pos["y"], "region": region}
     return coords
 
 
 def _build_parking_coords():
-    """从 airport_layout.json 加载停车场坐标."""
-    layout = _load_layout()
+    """从 airport_display.json 加载停车场显示坐标."""
+    display = _load_display()
     coords = {}
-    for pa in layout["parking_areas"]:
-        coords[pa["region"]] = {"x": pa["x"], "y": pa["y"], "label": pa["code"]}
+    for code, pa in display["parking_areas"].items():
+        coords[pa["region"]] = {"x": pa["x"], "y": pa["y"], "label": code}
     return coords
 
 
@@ -46,13 +46,13 @@ GATE_COORDS = _build_gate_coords()
 PARKING_COORDS = _build_parking_coords()
 
 VEHICLE_TYPE_ICONS = {
-    "TOW": "🚜", "GPU": "🔌", "STAIR": "🪜", "BUS": "🚌",
-    "FUEL": "⛽", "BAG": "🧳", "CLEAN": "🧹",
+    "TOW": "\U0001f69c", "GPU": "\U0001f50c", "STAIR": "\U0001fa9c", "BUS": "\U0001f68c",
+    "FUEL": "⛽", "BAG": "\U0001f9f3",
 }
 
 TASK_TYPE_NAMES = {
     "TOW": "牵引", "GPU": "电源", "STAIR": "客梯", "BUS": "摆渡",
-    "FUEL": "加油", "BAG": "行李", "CLEAN": "清洁",
+    "FUEL": "加油", "BAG": "行李",
 }
 
 
@@ -64,12 +64,16 @@ def map_data():
         Flight.arrival_at.isnot(None),
         Flight.arrival_at <= now,
     ).order_by(Flight.scheduled_at).all()
-    vehicles = Vehicle.query.order_by(Vehicle.type, Vehicle.plate).all()
+
+    # 查询车辆：JOIN vehicle_info + vehicle_status
+    vehicles = db.session.query(VehicleInfo, VehicleStatus).join(
+        VehicleStatus, VehicleInfo.plate_number == VehicleStatus.plate_number
+    ).order_by(VehicleInfo.vehicle_type, VehicleInfo.plate_number).all()
 
     active_tasks = Task.query.filter(
-        Task.status == "IN_PROGRESS", Task.vehicle_id.isnot(None)
+        Task.status == "IN_PROGRESS", Task.plate_number.isnot(None)
     ).all()
-    vehicle_to_flight = {t.vehicle_id: t.flight_id for t in active_tasks}
+    vehicle_to_flight = {t.plate_number: t.flight_id for t in active_tasks}
 
     # 航班→服务车辆映射
     flight_to_vehicles = {}
@@ -77,12 +81,12 @@ def map_data():
         if t.flight_id is None:
             continue
         flight_to_vehicles.setdefault(t.flight_id, [])
-        v = Vehicle.query.get(t.vehicle_id)
-        if v:
+        vinfo = db.session.get(VehicleInfo, t.plate_number)
+        if vinfo:
             flight_to_vehicles[t.flight_id].append({
-                "plate": v.plate,
-                "type_icon": VEHICLE_TYPE_ICONS.get(v.type, ""),
-                "type": v.type,
+                "plate": t.plate_number,
+                "type_icon": VEHICLE_TYPE_ICONS.get(vinfo.vehicle_type, ""),
+                "type": vinfo.vehicle_type,
             })
 
     flights_data = []
@@ -104,20 +108,19 @@ def map_data():
 
     _park_offsets = {}
     vehicles_data = []
-    for v in vehicles:
-        region_code = v.region.code if v.region else "A"
-        parking = PARKING_COORDS.get(region_code, PARKING_COORDS["A"])
-        assigned_flight_id = vehicle_to_flight.get(v.id)
+    for vinfo, vstat in vehicles:
+        parking = PARKING_COORDS.get(vinfo.region, PARKING_COORDS["A"])
+        assigned_flight_id = vehicle_to_flight.get(vinfo.plate_number)
 
         if assigned_flight_id:
-            flight = Flight.query.get(assigned_flight_id)
+            flight = db.session.get(Flight, assigned_flight_id)
             if flight and flight.gate:
                 gate = GATE_COORDS.get(flight.gate.code)
                 pos = {"x": gate["x"], "y": gate["y"] - 28} if gate else {"x": parking["x"], "y": parking["y"]}
             else:
                 pos = {"x": parking["x"], "y": parking["y"]}
         else:
-            key = f"{region_code}_{v.type}"
+            key = f"{vinfo.region}_{vinfo.vehicle_type}"
             offset = _park_offsets.get(key, 0)
             _park_offsets[key] = offset + 1
             pos = {
@@ -126,12 +129,12 @@ def map_data():
             }
 
         vehicles_data.append({
-            "id": v.id,
-            "plate": v.plate,
-            "type": v.type,
-            "type_label": VEHICLE_TYPE_ICONS.get(v.type, v.type),
-            "status": v.status,
-            "region": region_code,
+            "id": vstat.id,
+            "plate_number": vinfo.plate_number,
+            "type": vinfo.vehicle_type,
+            "type_label": VEHICLE_TYPE_ICONS.get(vinfo.vehicle_type, vinfo.vehicle_type),
+            "status": vstat.current_status,
+            "region": vinfo.region,
             "position": pos,
         })
 
@@ -151,37 +154,38 @@ def assign_task():
     """手动分配车辆到任务."""
     data = request.get_json()
     task_id = data.get("task_id")
-    vehicle_id = data.get("vehicle_id")
+    plate_number = data.get("plate_number")
 
-    task = Task.query.get(task_id)
-    vehicle = Vehicle.query.get(vehicle_id)
+    task = db.session.get(Task, task_id)
+    vstat = db.session.query(VehicleStatus).filter_by(plate_number=plate_number).first()
+    vinfo = db.session.get(VehicleInfo, plate_number) if plate_number else None
 
-    if not task or not vehicle:
+    if not task or not vstat:
         return jsonify({"ok": False, "error": "任务或车辆不存在"}), 404
     if task.status != "PENDING":
         return jsonify({"ok": False, "error": "任务状态不是 PENDING，无法分配"}), 400
-    if task.task_type != vehicle.type:
-        return jsonify({"ok": False, "error": f"车型不匹配：需要 {task.task_type}，拖拽的是 {vehicle.type}"}), 400
-    if vehicle.status != "IDLE":
-        return jsonify({"ok": False, "error": f"车辆当前状态为 {vehicle.status}，不可分配"}), 400
+    if not vinfo or task.task_type != vinfo.vehicle_type:
+        return jsonify({"ok": False, "error": f"车型不匹配：需要 {task.task_type}"}), 400
+    if vstat.current_status != "IDLE":
+        return jsonify({"ok": False, "error": f"车辆当前状态为 {vstat.current_status}，不可分配"}), 400
 
-    task.vehicle_id = vehicle.id
+    task.plate_number = plate_number
     task.status = "IN_PROGRESS"
-    vehicle.status = "ASSIGNED"
+    vstat.current_status = "ASSIGNED"
     db.session.commit()
 
     # 自动向车辆发送任务通知
     gate = task.flight.gate.code if task.flight and task.flight.gate else "--"
     flight_no = task.flight.flight_no if task.flight else "--"
     notif = CommunicationLog(
-        vehicle_id=vehicle.id, sender="DISPATCH",
+        plate_number=plate_number, sender="DISPATCH",
         content=f"【新任务】{flight_no} {gate} 机位，{TASK_TYPE_NAMES.get(task.task_type, task.task_type)}任务，请立即前往。",
         msg_type="TASK",
     )
     db.session.add(notif)
     db.session.commit()
 
-    return jsonify({"ok": True, "task_id": task.id, "vehicle_id": vehicle.id})
+    return jsonify({"ok": True, "task_id": task.id, "plate_number": plate_number})
 
 
 @api_bp.route("/api/auto-assign", methods=["POST"])
@@ -191,7 +195,7 @@ def auto_assign():
 
     flights = Flight.query.filter(
         Flight.id.in_(db.session.query(Task.flight_id).filter(
-            Task.status == "PENDING", Task.vehicle_id.is_(None)
+            Task.status == "PENDING", Task.plate_number.is_(None)
         ))
     ).all()
 
@@ -221,37 +225,37 @@ def auto_assign():
 def confirm_task():
     """车辆确认接收任务（ASSIGNED → BUSY）."""
     data = request.get_json()
-    vehicle_id = data.get("vehicle_id")
-    vehicle = db.session.get(Vehicle, vehicle_id)
-    if not vehicle:
+    plate_number = data.get("plate_number")
+    vstat = db.session.query(VehicleStatus).filter_by(plate_number=plate_number).first()
+    if not vstat:
         return jsonify({"ok": False, "error": "车辆不存在"}), 404
-    if vehicle.status != "ASSIGNED":
-        return jsonify({"ok": False, "error": f"车辆状态为 {vehicle.status}，不是已分配状态"}), 400
+    if vstat.current_status != "ASSIGNED":
+        return jsonify({"ok": False, "error": f"车辆状态为 {vstat.current_status}，不是已分配状态"}), 400
 
-    vehicle.status = "CONFIRMED"
+    vstat.current_status = "BUSY"
     notif = CommunicationLog(
-        vehicle_id=vehicle.id, sender="VEHICLE",
+        plate_number=plate_number, sender="VEHICLE",
         content="已确认任务，准备前往。",
         msg_type="STATUS",
     )
     db.session.add(notif)
     db.session.commit()
 
-    return jsonify({"ok": True, "vehicle_status": "CONFIRMED"})
+    return jsonify({"ok": True, "vehicle_status": "BUSY"})
 
 
 @api_bp.route("/api/vehicle/start-work", methods=["POST"])
 def start_work():
     """车辆开始执行任务（CONFIRMED → BUSY）."""
     data = request.get_json()
-    vehicle_id = data.get("vehicle_id")
-    vehicle = db.session.get(Vehicle, vehicle_id)
-    if not vehicle:
+    plate_number = data.get("plate_number")
+    vstat = db.session.query(VehicleStatus).filter_by(plate_number=plate_number).first()
+    if not vstat:
         return jsonify({"ok": False, "error": "车辆不存在"}), 404
-    if vehicle.status != "CONFIRMED":
-        return jsonify({"ok": False, "error": f"车辆状态为 {vehicle.status}，不是已确认状态"}), 400
+    if vstat.current_status != "ASSIGNED":
+        return jsonify({"ok": False, "error": f"车辆状态为 {vstat.current_status}，不是已分配状态"}), 400
 
-    vehicle.status = "BUSY"
+    vstat.current_status = "BUSY"
     db.session.commit()
 
     return jsonify({"ok": True, "vehicle_status": "BUSY"})
@@ -261,21 +265,20 @@ def start_work():
 def comm_send():
     """发送通讯消息（调度中心 → 车辆 / 车辆 → 调度中心）."""
     data = request.get_json()
-    vehicle_id = data.get("vehicle_id")
+    plate_number = data.get("plate_number")
     sender = data.get("sender", "").upper()
     content = (data.get("content") or "").strip()
     msg_type = data.get("msg_type", "TEXT").upper()
 
-    if not vehicle_id or not content:
-        return jsonify({"ok": False, "error": "缺少 vehicle_id 或 content"}), 400
+    if not plate_number or not content:
+        return jsonify({"ok": False, "error": "缺少 plate_number 或 content"}), 400
     if sender not in ("DISPATCH", "VEHICLE"):
         return jsonify({"ok": False, "error": "sender 必须是 DISPATCH 或 VEHICLE"}), 400
-    vehicle = db.session.get(Vehicle, vehicle_id)
-    if not vehicle:
+    if not db.session.get(VehicleInfo, plate_number):
         return jsonify({"ok": False, "error": "车辆不存在"}), 404
 
     log = CommunicationLog(
-        vehicle_id=vehicle_id, sender=sender,
+        plate_number=plate_number, sender=sender,
         content=content, msg_type=msg_type,
     )
     db.session.add(log)
@@ -287,17 +290,16 @@ def comm_send():
 @api_bp.route("/api/comm/poll")
 def comm_poll():
     """轮询获取未读消息（车载终端用），支持按车辆过滤."""
-    vehicle_id = request.args.get("vehicle_id", type=int)
+    plate_number = request.args.get("plate_number")
     since = request.args.get("since")
 
     q = CommunicationLog.query.order_by(CommunicationLog.created_at.asc())
 
-    if vehicle_id:
-        q = q.filter_by(vehicle_id=vehicle_id)
+    if plate_number:
+        q = q.filter_by(plate_number=plate_number)
     if since:
         q = q.filter(CommunicationLog.created_at > since)
 
-    # 车辆侧轮询时标记调度消息为已读
     logs = q.all()
     for log in logs:
         if log.sender == "DISPATCH" and not log.read:
@@ -310,12 +312,12 @@ def comm_poll():
 @api_bp.route("/api/comm/history")
 def comm_history():
     """获取与指定车辆的完整通讯记录（调度面板用）."""
-    vehicle_id = request.args.get("vehicle_id", type=int)
+    plate_number = request.args.get("plate_number")
     since = request.args.get("since")
 
     q = CommunicationLog.query
-    if vehicle_id:
-        q = q.filter_by(vehicle_id=vehicle_id)
+    if plate_number:
+        q = q.filter_by(plate_number=plate_number)
     if since:
         q = q.filter(CommunicationLog.created_at > since).order_by(CommunicationLog.created_at.asc())
     else:
@@ -323,10 +325,9 @@ def comm_history():
 
     logs = q.all()
 
-    # 调度面板加载时标记车辆消息为已读
-    if vehicle_id:
+    if plate_number:
         unread = CommunicationLog.query.filter_by(
-            vehicle_id=vehicle_id, sender="VEHICLE", read=False
+            plate_number=plate_number, sender="VEHICLE", read=False
         ).all()
         for log in unread:
             log.read = True
@@ -346,35 +347,38 @@ def comm_unread():
     from sqlalchemy import func
 
     rows = db.session.query(
-        CommunicationLog.vehicle_id,
+        CommunicationLog.plate_number,
         func.count(CommunicationLog.id).label("cnt"),
     ).filter(
         CommunicationLog.sender == "VEHICLE",
         CommunicationLog.read == False,
-    ).group_by(CommunicationLog.vehicle_id).all()
+    ).group_by(CommunicationLog.plate_number).all()
 
-    unread_map = {r.vehicle_id: r.cnt for r in rows}
+    unread_map = {r.plate_number: r.cnt for r in rows}
 
     result = {}
-    for v in Vehicle.query.all():
-        result[v.id] = {
-            "plate": v.plate,
-            "type": v.type,
-            "icon": VEHICLE_TYPE_ICONS.get(v.type, "🚛"),
-            "status": v.status,
-            "unread": unread_map.get(v.id, 0),
+    vehicles = db.session.query(VehicleInfo, VehicleStatus).join(
+        VehicleStatus, VehicleInfo.plate_number == VehicleStatus.plate_number
+    ).all()
+    for vinfo, vstat in vehicles:
+        result[vstat.id] = {
+            "plate_number": vinfo.plate_number,
+            "type": vinfo.vehicle_type,
+            "icon": VEHICLE_TYPE_ICONS.get(vinfo.vehicle_type, "\U0001f69b"),
+            "status": vstat.current_status,
+            "unread": unread_map.get(vinfo.plate_number, 0),
         }
     return jsonify({"ok": True, "unread": result})
 
 
-@api_bp.route("/api/vehicle/task/<int:vehicle_id>")
-def vehicle_active_task(vehicle_id):
+@api_bp.route("/api/vehicle/task/<plate_number>")
+def vehicle_active_task(plate_number):
     """返回车辆当前进行中的任务（车载终端轮询用）."""
-    vehicle = db.session.get(Vehicle, vehicle_id)
-    vehicle_status = vehicle.status if vehicle else None
+    vstat = db.session.query(VehicleStatus).filter_by(plate_number=plate_number).first()
+    vehicle_status = vstat.current_status if vstat else None
 
     task = Task.query.filter_by(
-        vehicle_id=vehicle_id, status="IN_PROGRESS"
+        plate_number=plate_number, status="IN_PROGRESS"
     ).first()
     if not task:
         return jsonify({"ok": True, "task": None, "vehicle_status": vehicle_status})

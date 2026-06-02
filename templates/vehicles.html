@@ -2,9 +2,9 @@
 {% block title %}车辆状态 — 无锡硕放机场地面车辆调度系统{% endblock %}
 {% block content %}
 
-{% set idle_count = vehicles | selectattr("status", "equalto", "IDLE") | list | length %}
-{% set busy_count = vehicles | selectattr("status", "equalto", "BUSY") | list | length %}
-{% set maint_count = vehicles | selectattr("status", "equalto", "MAINTENANCE") | list | length %}
+{% set idle_count = vehicles | selectattr("1.current_status", "equalto", "IDLE") | list | length %}
+{% set busy_count = vehicles | selectattr("1.current_status", "equalto", "BUSY") | list | length %}
+{% set maint_count = vehicles | selectattr("1.current_status", "equalto", "MAINTENANCE") | list | length %}
 
 <div class="stats">
     <div class="stat-card">
@@ -41,21 +41,21 @@
     <h1>车辆状态</h1>
 </div>
 
+{% set vstatus_map = {
+    'IDLE': ('green', '空闲'),
+    'ASSIGNED': ('yellow', '已分配'),
+    'BUSY': ('purple', '工作中'),
+    'MAINTENANCE': ('red', '维修中')
+} %}
+
 <div class="vehicle-grid">
-    {% for vehicle in vehicles %}
+    {% for vinfo, vstat in vehicles %}
     <div class="vehicle-card">
-        <div class="vehicle-plate">{{ vehicle.plate }}</div>
-        <div class="vehicle-type">{{ vehicle.get_type_display() if vehicle.get_type_display is defined else vehicle.type }}</div>
+        <div class="vehicle-plate">{{ vinfo.plate_number }}</div>
+        <div class="vehicle-type">{{ vinfo.brand_model }}</div>
         <div class="vehicle-meta">
-            <span>{{ vehicle.region.code if vehicle.region else '--' }}</span>
-            {% set vstatus_map = {
-                'IDLE': ('green', '空闲'),
-                'ASSIGNED': ('yellow', '已分配'),
-                'CONFIRMED': ('blue', '已确认'),
-                'BUSY': ('purple', '工作中'),
-                'MAINTENANCE': ('red', '维修中')
-            } %}
-            {% set vindicator, vlabel = vstatus_map.get(vehicle.status, ('gray', vehicle.status)) %}
+            <span>{{ vinfo.region or '--' }}</span>
+            {% set vindicator, vlabel = vstatus_map.get(vstat.current_status, ('gray', vstat.current_status)) %}
             <span class="indicator indicator-{{ vindicator }}">{{ vlabel }}</span>
         </div>
     </div>

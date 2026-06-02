@@ -1,27 +1,26 @@
-"""种子数据 — 从 data/ 目录加载调研数据并写入数据库.
+"""种子数据 — 从 data/ 目录加载参考数据并写入数据库.
 
-三层架构:
-  Layer 1: data/*.json      — 领域知识库（飞机/车辆技术参数、机场布局）
-  Layer 2: models/aircraft.py — 保障规则（Python 类，由技术参数推导）
-  Layer 3: MySQL 运行时表     — 航班/车辆/任务/机位/区域
+架构:
+  JSON 文件         — 数据交换格式（团队协作、版本管理）
+  MySQL 数据库       — 唯一运行时数据源，所有模块只读写数据库
 
 运行前需先在 MySQL 中创建数据库:
     mysql -u root -p -e "CREATE DATABASE airport_scheduling DEFAULT CHARACTER SET utf8mb4;"
 
 运行:
     python seed.py
-
-原则: seed.py 只负责"将调研数据写入数据库"，规则推导由 AircraftType 类完成。
 """
 import json
 import os
 from datetime import datetime, timedelta
 
+from sqlalchemy import text
+
 from app import create_app
 from models import db
 from models.region import Region
 from models.gate import Gate
-from models.vehicle import Vehicle
+from models.vehicle import VehicleModel, VehicleInfo, VehicleStatus
 from models.flight import Flight
 from models.road_network import RoadNode, RoadEdge
 from services.task_generator import TaskGenerator
@@ -36,11 +35,22 @@ def _load_json(filename: str) -> dict:
 
 
 def seed():
-    layout = _load_json("airport_layout.json")
+    layout = _load_json("airport_physical.json")
+    vehicle_models = _load_json("vehicle_models.json")
+    inventory = _load_json("vehicle_inventory.json")
 
     app = create_app()
     with app.app_context():
-        db.drop_all()
+        # 手动关闭外键检查后删除全部旧表，再重新建表
+        # 因为 db.drop_all() 内部使用独立连接，session 级的
+        # FOREIGN_KEY_CHECKS 对其不生效，改用 raw SQL。
+        db.session.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        db.session.commit()
+        tables = [row[0] for row in db.session.execute(text("SHOW TABLES")).fetchall()]
+        for t in tables:
+            db.session.execute(text(f"DROP TABLE IF EXISTS `{t}`"))
+        db.session.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        db.session.commit()
         db.create_all()
 
         # ── 区域 ────────────────────────────────────────
@@ -60,8 +70,6 @@ def seed():
                     code=g["code"],
                     region_id=region_map[region_code].id,
                     has_jet_bridge=g["has_jet_bridge"],
-                    x=g.get("x"),
-                    y=g.get("y"),
                 )
                 db.session.add(gate)
                 gate_map[g["code"]] = gate
@@ -69,58 +77,51 @@ def seed():
         jetbridge_count = sum(1 for g in gate_map.values() if g.has_jet_bridge)
         print(f"  OK 停机位: {len(gate_map)} 个（廊桥 {jetbridge_count} / 远机位 {len(gate_map) - jetbridge_count}）")
 
-        # ── 车辆实例 ────────────────────────────────────
-        # variant 指向 vehicle_catalog.json 中 variants[].class
-        vehicles_def = [
-            # TOW 牵引车 — 三种等级
-            ("民航-B2001", "TOW", "标准型",  "A"),
-            ("民航-B2002", "TOW", "标准型",  "B"),
-            ("民航-B2003", "TOW", "重型",    "A"),
-            ("民航-B2004", "TOW", "超重型",  "A"),
-
-            # GPU 电源车 — 通用型
-            ("民航-B2005", "GPU", "通用型", "A"),
-            ("民航-B2006", "GPU", "通用型", "A"),
-            ("民航-B2007", "GPU", "通用型", "B"),
-            ("民航-B2008", "GPU", "通用型", "B"),
-
-            # STAIR 客梯车 — 三种高度等级（仅远机位需要，但车辆要预先部署）
-            ("民航-B2009", "STAIR", "标准型",  "A"),
-            ("民航-B2010", "STAIR", "标准型",  "B"),
-            ("民航-B2011", "STAIR", "高管型",  "A"),
-            ("民航-B2012", "STAIR", "超高管型","A"),
-
-            # BUS 摆渡车 — 两种容量（仅远机位需要）
-            ("民航-B2013", "BUS", "小型", "A"),
-            ("民航-B2014", "BUS", "小型", "B"),
-            ("民航-B2015", "BUS", "大型", "A"),
-            ("民航-B2016", "BUS", "大型", "B"),
-
-            # FUEL 加油车 — 两种容量
-            ("民航-B2017", "FUEL", "标准型",   "A"),
-            ("民航-B2018", "FUEL", "标准型",   "B"),
-            ("民航-B2019", "FUEL", "大容量型", "A"),
-            ("民航-B2020", "FUEL", "大容量型", "B"),
-
-            # BAG 行李车 — 通用型（可串飞多航班）
-            ("民航-B2021", "BAG", "通用型", "A"),
-            ("民航-B2022", "BAG", "通用型", "A"),
-            ("民航-B2023", "BAG", "通用型", "B"),
-            ("民航-B2024", "BAG", "通用型", "B"),
-
-            # CLEAN 清洁车 — 通用型
-            ("民航-B2025", "CLEAN", "通用型", "A"),
-            ("民航-B2026", "CLEAN", "通用型", "A"),
-            ("民航-B2027", "CLEAN", "通用型", "B"),
-        ]
-
-        for plate, vtype, variant, region_code in vehicles_def:
-            db.session.add(Vehicle(
-                plate=plate, type=vtype, variant=variant,
-                region_id=region_map[region_code].id,
-            ))
+        # ── 车辆型号 — 从 vehicle_models.json 导入 ────────
+        model_count = 0
+        for entry in vehicle_models:
+            for m in entry.get("models", []):
+                vm = VehicleModel(
+                    vehicle_type=entry["vehicle_type"],
+                    brand_model=m["brand_model"],
+                    manufacturer=m.get("manufacturer"),
+                    size_class=m.get("size_class"),
+                    specs={k: v for k, v in m.items() if k not in (
+                        "brand_model", "manufacturer", "size_class",
+                        "compatible_aircraft", "base_duration_min",
+                    )},
+                    compatible_aircraft=m.get("compatible_aircraft"),
+                    base_duration_min=m.get("base_duration_min"),
+                )
+                db.session.add(vm)
+                model_count += 1
         db.session.flush()
-        print(f"  OK 车辆: {len(vehicles_def)} 辆（7 种车型，多等级部署）")
+        print(f"  OK 车辆型号: {model_count} 种（{len(vehicle_models)} 个类型）")
+
+        # ── 车辆 — 从 vehicle_inventory.json 导入 ────────
+        type_count = {}
+        for v in inventory:
+            info = VehicleInfo(
+                plate_number=v["plate_number"],
+                vehicle_type=v["vehicle_type"],
+                brand_model=v["brand_model"],
+                size_class=v.get("size_class"),
+                region=v.get("region", "A"),
+                purchase_date=datetime.strptime(v["purchase_date"], "%Y-%m-%d").date()
+                if v.get("purchase_date") else None,
+                asset_tag=v.get("asset_tag"),
+                remark=v.get("remark"),
+            )
+            db.session.add(info)
+            status = VehicleStatus(
+                plate_number=v["plate_number"],
+                current_status="IDLE",
+            )
+            db.session.add(status)
+            type_count[v["vehicle_type"]] = type_count.get(v["vehicle_type"], 0) + 1
+        db.session.flush()
+        summary = ", ".join(f"{t}{c}台" for t, c in sorted(type_count.items()))
+        print(f"  OK 车辆: {len(inventory)} 台（{summary}）")
 
         # ── 路网节点 ────────────────────────────────────
         node_map = {}
@@ -164,28 +165,29 @@ def seed():
         # ── 航班（模拟运营数据） ────────────────────────
         now = datetime.utcnow() + timedelta(hours=8)  # 北京时间
         flights_data = [
-            # (航班号, 航空公司, 机型,  计划起飞,         停机位, 过站分钟)
-            ("CA1234", "中国国航", "A320", now + timedelta(minutes=10),     "A01", 40),   # 廊桥
-            ("MU2567", "东方航空", "B777", now + timedelta(minutes=40),     "A06", 50),   # 远机位
-            ("CZ3890", "南方航空", "A320", now + timedelta(hours=1, minutes=10),  "B01", 40),   # 廊桥
-            ("3U8888", "四川航空", "A380", now + timedelta(hours=1, minutes=40),  "A08", 60),   # 远机位, 超大型
-            ("HU7205", "海南航空", "B787", now + timedelta(hours=2, minutes=10),  "A03", 45),   # 廊桥
-            ("ZH9102", "深圳航空", "B737", now + timedelta(hours=2, minutes=40),  "B06", 40),   # 远机位
-            ("MF8123", "厦门航空", "A330", now + timedelta(hours=3, minutes=10),  "B03", 45),   # 廊桥
-            ("CA8899", "中国国航", "A320", now + timedelta(hours=3, minutes=40),  "B08", 40),   # 远机位
-            ("CZ6622", "南方航空", "B777", now + timedelta(hours=4, minutes=10),  "A04", 50),   # 廊桥
-            ("3U9999", "四川航空", "B737", now + timedelta(hours=4, minutes=40),  "A07", 40),   # 远机位
-            ("HU5368", "海南航空", "A330", now + timedelta(hours=5, minutes=10),  "B05", 45),   # 远机位
-            ("MU7118", "东方航空", "B787", now + timedelta(hours=5, minutes=40),  "B02", 45),   # 廊桥
+            # (航班号, 航空公司, 机型,  计划起飞,         停机位, 过站分钟, 加油)
+            ("CA1234", "中国国航", "A320", now + timedelta(minutes=10),     "A01", 40, True),
+            ("MU2567", "东方航空", "B777", now + timedelta(minutes=40),     "A06", 50, False),
+            ("CZ3890", "南方航空", "A320", now + timedelta(hours=1, minutes=10),  "B01", 40, False),
+            ("HU7205", "海南航空", "A330", now + timedelta(hours=1, minutes=40),  "A03", 45, True),
+            ("ZH9102", "深圳航空", "B737", now + timedelta(hours=2, minutes=10),  "B06", 40, False),
+            ("MF8123", "厦门航空", "A330", now + timedelta(hours=2, minutes=40),  "B03", 45, True),
+            ("CA8899", "中国国航", "A320", now + timedelta(hours=3, minutes=10),  "B08", 40, True),
+            ("CZ6622", "南方航空", "B777", now + timedelta(hours=3, minutes=40),  "A04", 50, False),
+            ("MU6677", "东方航空", "B737", now + timedelta(hours=4, minutes=10),  "A07", 40, False),
+            ("HU5368", "海南航空", "A330", now + timedelta(hours=4, minutes=40),  "B05", 45, True),
+            ("ZH8001", "深圳航空", "B737", now + timedelta(hours=5, minutes=10),  "B02", 40, False),
+            ("CA5566", "中国国航", "A320", now + timedelta(hours=5, minutes=40),  "A08", 40, True),
         ]
 
         flights = []
-        for fn, airline, at, dep, gate_code, turnaround in flights_data:
+        for fn, airline, at, dep, gate_code, turnaround, needs_fuel in flights_data:
             region_code = gate_code[0]  # A01 → A
             f = Flight(
                 flight_no=fn,
                 airline=airline,
                 aircraft_type=at,
+                needs_fuel=needs_fuel,
                 scheduled_at=dep,
                 arrival_at=dep - timedelta(minutes=turnaround),
                 gate_id=gate_map[gate_code].id,
@@ -194,7 +196,9 @@ def seed():
             db.session.add(f)
             flights.append(f)
         db.session.commit()
-        print(f"  OK 航班: {len(flights)} 个（覆盖 6 种机型，廊桥+远机位混合）")
+
+        fuel_count = sum(1 for f in flights if f.needs_fuel)
+        print(f"  OK 航班: {len(flights)} 个（加油 {fuel_count} / 不加油 {len(flights) - fuel_count}，4种机型，廊桥+远机位混合）")
 
         # ── 任务（由 AircraftType.generate_tasks() 生成）──
         total_tasks = 0
@@ -206,7 +210,7 @@ def seed():
         # ── 统计摘要 ─────────────────────────────────────
         print(f"\n{'='*50}")
         print(f"种子数据写入完成。")
-        print(f"  区域: {len(layout['regions'])} | 停机位: {len(gate_map)} | 车辆: {len(vehicles_def)}")
+        print(f"  区域: {len(layout['regions'])} | 停机位: {len(gate_map)} | 车辆型号: {model_count} | 车辆: {len(inventory)}")
         print(f"  航班: {len(flights)} | 任务: {total_tasks}")
         print(f"{'='*50}")
 
