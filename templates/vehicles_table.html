@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}车辆信息表 — 无锡硕放机场地面车辆调度系统{% endblock %}
+{% block content %}
+
+{% set status_colors = {
+    'IDLE': 'green',
+    'ASSIGNED': 'yellow',
+    'BUSY': 'purple',
+    'MAINTENANCE': 'red'
+} %}
+
+<div class="page-header">
+    <h1>车辆信息表</h1>
+    <div class="page-header-right">
+        <span class="page-count">共 {{ rows | length }} 辆</span>
+    </div>
+</div>
+
+<div class="flights-table-wrap">
+    <table class="flights-table">
+        <thead>
+            <tr>
+                <th>车牌号</th>
+                <th>车辆类型</th>
+                <th>尺寸等级</th>
+                <th>所属区域</th>
+                <th>当前状态</th>
+                <th>当前任务</th>
+                <th class="cell-meta-th">品牌型号</th>
+                <th class="cell-meta-th">资产编号</th>
+                <th class="cell-meta-th">购置日期</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vinfo, vstat in rows %}
+            {% set sc = status_colors.get(vstat.current_status, 'gray') %}
+            <tr>
+                <td class="cell-flight-no">{{ vinfo.plate_number }}</td>
+                <td><span class="task-tag tag-{{ vinfo.vehicle_type }}">{{ TYPE_NAMES.get(vinfo.vehicle_type, vinfo.vehicle_type) }}</span></td>
+                <td>{{ vinfo.size_class or '--' }}</td>
+                <td>{{ vinfo.region or '--' }}区</td>
+                <td><span class="indicator indicator-{{ sc }}">{{ STATUS_NAMES.get(vstat.current_status, vstat.current_status) }}</span></td>
+                <td>{{ vstat.assigned_aircraft or '--' }}</td>
+                <td class="cell-meta">{{ vinfo.brand_model }}</td>
+                <td class="cell-meta">{{ vinfo.asset_tag or '--' }}</td>
+                <td class="cell-meta cell-time">{{ vinfo.purchase_date.strftime('%Y-%m-%d') if vinfo.purchase_date else '--' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="table-empty">暂无车辆数据，请先运行 seed.py 初始化</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.flights-table-wrap {
+    margin: 0 24px 24px;
+    overflow-x: auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.flights-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+}
+
+.flights-table th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-nav);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+}
+
+.flights-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+.flights-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.cell-flight-no {
+    font-weight: 700;
+    font-family: "SF Mono", Consolas, monospace;
+    color: var(--accent) !important;
+}
+
+.cell-time {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: .78rem;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px 12px;
+}
+
+.page-header h1 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.page-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-count {
+    font-size: .75rem;
+    color: var(--text-secondary);
+}
+
+.table-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 12px !important;
+}
+
+.task-tag { font-size: .68rem; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+.tag-TOW   { background: rgba(168,85,247,.15); color: #c084fc; }
+.tag-GPU   { background: rgba(245,158,11,.15); color: #fbbf24; }
+.tag-STAIR { background: rgba(59,130,246,.15); color: #60a5fa; }
+.tag-BUS   { background: rgba(16,185,129,.15); color: #34d399; }
+.tag-FUEL  { background: rgba(234,179,8,.15);  color: #facc15; }
+.tag-BAG   { background: rgba(34,197,94,.15);  color: #4ade80; }
+
+.cell-meta { color: var(--text-muted); font-size: .72rem; }
+.cell-meta-th { color: var(--text-muted); }
+</style>
+{% endblock %}

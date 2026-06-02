@@ -194,11 +194,19 @@ body {
 /* ── 车辆类型概览栏 ──────────────────── */
 .vtype-bar {
     display: flex;
-    gap: 2px;
+    align-items: center;
+    gap: 8px;
     padding: 6px 16px 6px 12px;
     background: var(--bg-nav);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+}
+
+.vtype-center {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    justify-content: center;
 }
 
 .vtype-section {
@@ -322,6 +330,29 @@ body {
     text-align: center;
     color: var(--text-muted);
     font-size: .75rem;
+}
+
+.vtype-bar-link {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    color: var(--text-secondary);
+    font-size: .75rem;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color .15s;
+    border-right: 1px solid var(--border);
+}
+
+.vtype-bar-link:last-of-type {
+    border-right: none;
+    margin-right: 8px;
+}
+
+.vtype-bar-link:hover {
+    color: var(--accent);
+    text-decoration: none;
 }
 
 /* ── 主框架：侧边栏 + 态势图 ──────────── */

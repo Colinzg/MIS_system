@@ -16,6 +16,9 @@
 
 {# ── 车辆类型概览栏 ── #}
 <div class="vtype-bar">
+    <a href="{{ url_for('vehicles.vehicles_table') }}" class="vtype-bar-link">车辆信息</a>
+    <a href="{{ url_for('flights.flights') }}" class="vtype-bar-link">航班信息</a>
+    <div class="vtype-center">
     {% for code, name in vtype_names.items() %}
     {% set tv = vehicles | selectattr("0.vehicle_type", "equalto", code) | list %}
     {% set idle_v = tv | selectattr("1.current_status", "equalto", "IDLE") | list | length %}
@@ -53,6 +56,7 @@
         </div>
     </div>
     {% endfor %}
+    </div>
 </div>
 
 {# ── 主布局：左侧边栏 + 态势图 ── #}

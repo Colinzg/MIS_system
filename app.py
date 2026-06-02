@@ -39,16 +39,16 @@ def create_app(config_class=Config):
         return response
 
     # 注册路由蓝图
-    from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, manual_bp, api_bp
+    from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, manual_bp, flights_bp, api_bp
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(schedule_bp)
     app.register_blueprint(vehicles_bp)
     app.register_blueprint(maintenance_bp)
     app.register_blueprint(manual_bp)
+    app.register_blueprint(flights_bp)
     app.register_blueprint(api_bp)
 
     return app
-
 
 if __name__ == "__main__":
     # 自动启动车载终端模拟器（绑定车辆 ID=1，独立进程，端口 5001）
