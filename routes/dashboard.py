@@ -28,6 +28,9 @@ def dashboard():
         VehicleStatus, VehicleInfo.plate_number == VehicleStatus.plate_number
     ).order_by(VehicleInfo.vehicle_type, VehicleInfo.plate_number).all()
 
+    # 构建 plate_number → VehicleStatus 映射，用于任务监控面板显示精确状态
+    vstat_map = {vs.plate_number: vs for _, vs in vehicles}
+
     flight_groups = []
     for task in pending:
         if not flight_groups or flight_groups[-1]["flight"].id != task.flight_id:
@@ -35,4 +38,4 @@ def dashboard():
         flight_groups[-1]["tasks"].append(task)
 
     return render_template("dashboard.html", flight_groups=flight_groups, flights=flights,
-                           vehicles=vehicles, active_tasks=active_tasks, now=now)
+                           vehicles=vehicles, active_tasks=active_tasks, vstat_map=vstat_map, now=now)

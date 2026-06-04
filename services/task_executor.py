@@ -3,6 +3,7 @@
 职责:
   - 检查过期任务并自动标记为 COMPLETED
   - 释放完成任务的车辆回 IDLE 状态
+  - 到达工作时间的任务：车辆 ASSIGNED → BUSY
   - 推进航班状态 (SCHEDULED → ARRIVED → DEPARTED)
 
 由后台线程周期性调用（每 10 秒），也可通过 POST /api/tick 手动触发。
@@ -29,6 +30,7 @@ class TaskExecutor:
             "flights_arrived": [],
             "tasks_completed": 0,
             "vehicles_released": [],
+            "vehicles_started": [],
             "flights_departed": [],
         }
         committed = False
@@ -62,6 +64,21 @@ class TaskExecutor:
                         vstat.current_task = None
                         vstat.assigned_aircraft = None
                         result["vehicles_released"].append(task.plate_number)
+
+            # ── 2.5 到达工作时间的任务：车辆 ASSIGNED → BUSY ──
+            started_tasks = Task.query.filter(
+                Task.status == "IN_PROGRESS",
+                Task.plate_number.isnot(None),
+                Task.scheduled_start.isnot(None),
+                Task.scheduled_start <= now,
+            ).all()
+            for task in started_tasks:
+                vstat = VehicleStatus.query.filter_by(
+                    plate_number=task.plate_number
+                ).first()
+                if vstat and vstat.current_status == "ASSIGNED":
+                    vstat.current_status = "BUSY"
+                    result.setdefault("vehicles_started", []).append(task.plate_number)
 
             # ── 3. 航班自动离场：所有任务已完成 且 scheduled_at 已过 → DEPARTED ──
             active_flights = Flight.query.filter(

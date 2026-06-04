@@ -9,6 +9,7 @@
     'IDLE': ('green', '空闲'),
     'ASSIGNED': ('yellow', '已分配'),
     'BUSY': ('purple', '工作中'),
+    'REFUELING': ('orange', '回补中'),
     'MAINTENANCE': ('yellow', '维修中')
 } %}
 
@@ -158,7 +159,7 @@
             <div class="panel panel-tracking">
                 <div class="panel-header">
                     <span class="panel-title">任务监控</span>
-                    <span class="panel-badge">{{ active_tasks | length }} 进行中</span>
+                    <span class="panel-badge">{{ active_tasks | length }} 个任务</span>
                 </div>
                 <div class="panel-body">
                     {% if active_tasks %}
@@ -175,13 +176,17 @@
                         </thead>
                         <tbody>
                             {% for t in active_tasks %}
+                            {% set vs = vstat_map.get(t.plate_number) if t.plate_number else None %}
+                            {% set vstatus = vs.current_status if vs else 'ASSIGNED' %}
+                            {% set vstatus_label = '工作中' if vstatus == 'BUSY' else '已分配' %}
+                            {% set vstatus_color = 'purple' if vstatus == 'BUSY' else 'yellow' %}
                             <tr>
                                 <td class="cell-flight">{{ t.flight.flight_no if t.flight else '--' }}</td>
                                 <td>{{ t.flight.gate.code if t.flight and t.flight.gate else '--' }}</td>
                                 <td><span class="task-tag tag-{{ t.task_type }}">{{ task_type_names.get(t.task_type, t.task_type) }}</span></td>
                                 <td class="cell-vehicle">{{ t.plate_number or '--' }}</td>
                                 <td class="cell-time">{{ t.scheduled_start.strftime('%H:%M') if t.scheduled_start else '--' }}</td>
-                                <td><span class="indicator indicator-purple">进行中</span></td>
+                                <td><span class="indicator indicator-{{ vstatus_color }}">{{ vstatus_label }}</span></td>
                             </tr>
                             {% endfor %}
                         </tbody>
