@@ -10,8 +10,11 @@
   3. 区域优先 — 同区域空闲车辆优先
   4. 任务依赖 — 前置任务未完成时暂不分配
 """
+from __future__ import annotations
+
 import json
 import os
+from datetime import datetime, timedelta
 from models import db
 from models.vehicle import VehicleInfo, VehicleStatus
 from models.task import Task
@@ -34,6 +37,16 @@ def _get_model_compatible_aircraft(brand_model: str) -> list:
             if m["brand_model"] == brand_model:
                 return m.get("compatible_aircraft", [])
     return []
+
+
+def _get_model_duration(brand_model: str) -> int | None:
+    """从 vehicle_models.json 查询指定型号的基准作业时长（分钟）."""
+    catalog = _load_vehicle_models()
+    for entry in catalog:
+        for m in entry.get("models", []):
+            if m["brand_model"] == brand_model:
+                return m.get("base_duration_min")
+    return None
 
 
 class Scheduler:
@@ -78,6 +91,14 @@ class Scheduler:
                 if vstat:
                     vstat.current_status = "ASSIGNED"
                 vinfo = db.session.get(VehicleInfo, plate)
+                # 计时起点 = max(当前时间, 航班入位时间)，飞机没到不开始计时
+                now = datetime.utcnow() + timedelta(hours=8)  # 北京时间
+                start = now
+                if flight.arrival_at and flight.arrival_at > now:
+                    start = flight.arrival_at  # 飞机还没到，等到了再计时
+                task.scheduled_start = start
+                duration = _get_model_duration(vinfo.brand_model) or 15
+                task.scheduled_end = start + timedelta(minutes=duration)
                 result["tasks"].append({
                     "task_type": task.task_type,
                     "plate_number": plate,

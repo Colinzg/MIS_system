@@ -165,19 +165,21 @@ def seed():
         # ── 航班（模拟运营数据） ────────────────────────
         now = datetime.utcnow() + timedelta(hours=8)  # 北京时间
         flights_data = [
-            # (航班号, 航空公司, 机型,  计划起飞,         停机位, 过站分钟, 加油)
-            ("CA1234", "中国国航", "A320", now + timedelta(minutes=10),     "A01", 40, True),
-            ("MU2567", "东方航空", "B777", now + timedelta(minutes=40),     "A06", 50, False),
-            ("CZ3890", "南方航空", "A320", now + timedelta(hours=1, minutes=10),  "B01", 40, False),
-            ("HU7205", "海南航空", "A330", now + timedelta(hours=1, minutes=40),  "A03", 45, True),
-            ("ZH9102", "深圳航空", "B737", now + timedelta(hours=2, minutes=10),  "B06", 40, False),
-            ("MF8123", "厦门航空", "A330", now + timedelta(hours=2, minutes=40),  "B03", 45, True),
-            ("CA8899", "中国国航", "A320", now + timedelta(hours=3, minutes=10),  "B08", 40, True),
-            ("CZ6622", "南方航空", "B777", now + timedelta(hours=3, minutes=40),  "A04", 50, False),
-            ("MU6677", "东方航空", "B737", now + timedelta(hours=4, minutes=10),  "A07", 40, False),
-            ("HU5368", "海南航空", "A330", now + timedelta(hours=4, minutes=40),  "B05", 45, True),
-            ("ZH8001", "深圳航空", "B737", now + timedelta(hours=5, minutes=10),  "B02", 40, False),
-            ("CA5566", "中国国航", "A320", now + timedelta(hours=5, minutes=40),  "A08", 40, True),
+            # (航班号, 航空公司, 机型,  计划起飞(now+偏移),    停机位, 过站分钟, 加油)
+            # 车辆任务总耗时 ~8-10min，scheduled_at 留足余量（≥10min）
+            # 每 5-8 分钟一班，A区 B区 交替，廊桥远机位混合
+            ("CA1234", "中国国航", "A320", now + timedelta(minutes=10),     "A01", 20, True),
+            ("MU2567", "东方航空", "B777", now + timedelta(minutes=16),     "B05", 25, True),
+            ("CZ3890", "南方航空", "A320", now + timedelta(minutes=22),     "B01", 20, False),
+            ("HU7205", "海南航空", "A330", now + timedelta(minutes=28),     "A03", 25, True),
+            ("ZH9102", "深圳航空", "B737", now + timedelta(minutes=34),     "B06", 20, False),
+            ("MF8123", "厦门航空", "A330", now + timedelta(minutes=40),     "B03", 25, True),
+            ("CA8899", "中国国航", "A320", now + timedelta(minutes=46),     "B08", 20, True),
+            ("CZ6622", "南方航空", "B777", now + timedelta(minutes=52),     "A04", 25, False),
+            ("MU6677", "东方航空", "B737", now + timedelta(minutes=58),     "A07", 20, False),
+            ("HU5368", "海南航空", "A330", now + timedelta(minutes=64),     "B05", 25, True),
+            ("ZH8001", "深圳航空", "B737", now + timedelta(minutes=70),     "B02", 20, False),
+            ("CA5566", "中国国航", "A320", now + timedelta(minutes=76),     "A08", 20, True),
         ]
 
         flights = []

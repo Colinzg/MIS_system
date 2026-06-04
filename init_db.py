@@ -32,10 +32,10 @@ def init(seed_data=False, reset=False):
     with app.app_context():
         if reset:
             db.drop_all()
-            print("✓ 已清空所有表")
+            print("[OK] All tables dropped.")
 
         db.create_all()
-        print("✓ 数据库表结构已就绪")
+        print("[OK] Database tables created.")
 
         if seed_data:
             from seed import seed
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         check_migration()
     else:
         if args.reset:
-            confirm = input("⚠️  确定要清空所有数据吗？(yes/no): ")
+            confirm = input("[WARNING] Are you sure to drop all tables? (yes/no): ")
             if confirm.lower() != "yes":
                 print("已取消")
                 sys.exit(0)

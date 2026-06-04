@@ -266,3 +266,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* 页面刷新前保存展开状态 */
 window.addEventListener('beforeunload', saveExpandState);
+
+/* 每 12 秒自动刷新态势图（与后台线程 10 秒周期接近） */
+setInterval(function() {
+  renderAirportMap('airport-map');
+}, 12000);

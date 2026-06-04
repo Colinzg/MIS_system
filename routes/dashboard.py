@@ -13,7 +13,9 @@ from . import dashboard_bp
 def dashboard():
     """调度员任务看板：显示所有航班及其任务状态."""
     now = datetime.utcnow() + timedelta(hours=8)  # 北京时间 (naive, 与 DB 一致)
-    flights = Flight.query.order_by(Flight.scheduled_at).all()
+    flights = Flight.query.filter(
+        Flight.status.in_(["SCHEDULED", "ARRIVED"])
+    ).order_by(Flight.scheduled_at).all()
     # 待分配任务按航班分组
     pending = Task.query.filter_by(status="PENDING").join(Task.flight).order_by(
         Flight.scheduled_at.asc(), Task.id

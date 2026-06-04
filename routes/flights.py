@@ -17,7 +17,9 @@ STATUS_NAMES = {
 @flights_bp.route("/flights")
 def flights():
     now = datetime.utcnow() + timedelta(hours=8)
-    flights = Flight.query.order_by(Flight.scheduled_at).all()
+    flights = Flight.query.filter(
+        Flight.status.in_(["SCHEDULED", "ARRIVED"])
+    ).order_by(Flight.scheduled_at).all()
 
     rows = []
     for f in flights:

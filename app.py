@@ -17,6 +17,9 @@
 import os
 import subprocess
 import sys
+import threading
+import time
+import traceback
 
 from flask import Flask
 from config import Config
@@ -39,16 +42,38 @@ def create_app(config_class=Config):
         return response
 
     # 注册路由蓝图
-    from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, manual_bp, flights_bp, api_bp
+    from routes import dashboard_bp, schedule_bp, vehicles_bp, maintenance_bp, manual_bp, flights_bp, logs_bp, api_bp
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(schedule_bp)
     app.register_blueprint(vehicles_bp)
     app.register_blueprint(maintenance_bp)
     app.register_blueprint(manual_bp)
     app.register_blueprint(flights_bp)
+    app.register_blueprint(logs_bp)
     app.register_blueprint(api_bp)
 
     return app
+
+
+def _run_task_executor(app):
+    """后台线程：周期性自动完成任务并推进航班状态."""
+    time.sleep(3)  # 等 Flask 启动完毕
+    cycle_count = 0
+    while True:
+        try:
+            with app.app_context():
+                from services.task_executor import TaskExecutor
+                result = TaskExecutor.run_cycle()
+                cycle_count += 1
+                if any(v for v in result.values() if v):
+                    print(f"[TaskExecutor #{cycle_count}] {result}")
+                elif cycle_count % 6 == 0:  # 每 60 秒输出一次心跳
+                    print(f"[TaskExecutor #{cycle_count}] 心跳正常，无过期任务")
+        except Exception:
+            print(f"[TaskExecutor #{cycle_count}] 异常:")
+            traceback.print_exc()
+        time.sleep(10)
+
 
 if __name__ == "__main__":
     # 自动启动车载终端模拟器（绑定车辆 ID=1，独立进程，端口 5001）
@@ -59,6 +84,14 @@ if __name__ == "__main__":
     )
 
     app = create_app()
+
+    # 启动后台任务执行线程（自动完成任务 + 释放车辆 + 推进航班状态）
+    executor_thread = threading.Thread(
+        target=_run_task_executor, args=(app,), daemon=True, name="task-executor"
+    )
+    executor_thread.start()
+
+    # Flask 启动后会在终端输出可点击的 URL（Ctrl+点击即可在默认浏览器打开）
     try:
         app.run(debug=True, use_reloader=False)
     finally:

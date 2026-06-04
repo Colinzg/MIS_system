@@ -79,8 +79,17 @@ function appendCommMsg(msg) {
     if (box.querySelector('.comm-empty')) box.innerHTML = '';
     var div = document.createElement('div');
     div.className = 'comm-msg comm-msg-' + msg.sender.toLowerCase();
-    var label = msg.sender === 'DISPATCH' ? '📡 调度中心' : '🚛 ' + (msg.plate_number || '车辆');
-    div.innerHTML = '<div class="comm-msg-meta">' + label + ' ' + msg.created_at + '</div>' +
+    var isDispatch = msg.sender === 'DISPATCH';
+    var avatar = isDispatch ? '📡' : '🚛';
+    var label = isDispatch ? '调度中心' : (msg.plate_number || '车辆');
+    var time = msg.created_at || '';
+    // 只显示时:分
+    if (time.length >= 16) time = time.substring(11, 16);
+    div.innerHTML = '<div class="comm-msg-meta">' +
+                        '<span class="comm-msg-avatar">' + avatar + '</span>' +
+                        '<span class="comm-msg-label">' + label + '</span>' +
+                        '<span class="comm-msg-time">' + time + '</span>' +
+                    '</div>' +
                     '<div class="comm-msg-body">' + escapeHtml(msg.content) + '</div>';
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;

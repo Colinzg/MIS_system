@@ -82,8 +82,9 @@ class AircraftType:
         """
         tasks = []
 
-        # GPU — 刚性需求，全程供电
-        tasks.append({"type": "GPU", "depends_on_type": None})
+        # GPU — 仅远机位需要（廊桥机位由廊桥提供电源接口）
+        if not gate_has_jet_bridge:
+            tasks.append({"type": "GPU", "depends_on_type": None})
 
         # STAIR + BUS — 仅远机位
         if not gate_has_jet_bridge:

@@ -11,6 +11,6 @@ class Config:
     # 格式: mysql+pymysql://用户名:密码@主机:端口/库名?charset=utf8mb4
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
-        "mysql+pymysql://root:274156@localhost:3306/airport_scheduling?charset=utf8mb4",
+        "mysql+pymysql://root:240921@localhost:3306/airport_scheduling?charset=utf8mb4",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False

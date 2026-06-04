@@ -14,7 +14,7 @@
         "size_class": "小型",
         "towing_force_kn": 160,
         "compatible_aircraft": ["A320", "B737"],
-        "base_duration_min": 10
+        "base_duration_min": 3
       },
       {
         "brand_model": "TLD TMX-350",
@@ -22,7 +22,7 @@
         "size_class": "大型",
         "towing_force_kn": 350,
         "compatible_aircraft": ["A330", "B777"],
-        "base_duration_min": 15
+        "base_duration_min": 3
       }
     ]
   },
@@ -41,7 +41,7 @@
         "size_class": "小型",
         "power_kva": 90,
         "compatible_aircraft": ["A320", "B737"],
-        "base_duration_min": 60
+        "base_duration_min": 5
       },
       {
         "brand_model": "威海广泰 WGJD-180",
@@ -49,7 +49,7 @@
         "size_class": "大型",
         "power_kva": 140,
         "compatible_aircraft": ["A330", "B777"],
-        "base_duration_min": 60
+        "base_duration_min": 5
       }
     ]
   },
@@ -77,7 +77,7 @@
         "size_class": "高升程",
         "max_height_m": 5.8,
         "compatible_aircraft": ["A330", "B777"],
-        "base_duration_min": 8
+        "base_duration_min": 3
       }
     ]
   },
@@ -97,7 +97,7 @@
         "size_class": "大型",
         "passenger_capacity": 110,
         "compatible_aircraft": ["A320", "B737", "A330", "B777"],
-        "base_duration_min": 12
+        "base_duration_min": 3
       }
     ]
   },
@@ -117,7 +117,7 @@
         "size_class": "标准",
         "fuel_type": "加油栓车",
         "compatible_aircraft": ["A320", "B737", "A330", "B777"],
-        "base_duration_min": 25
+        "base_duration_min": 5
       }
     ]
   },
@@ -137,7 +137,7 @@
         "size_class": "标准",
         "towing_capacity_t": 25,
         "compatible_aircraft": ["A320", "B737", "A330", "B777"],
-        "base_duration_min": 15
+        "base_duration_min": 5
       }
     ]
   }

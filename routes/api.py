@@ -6,6 +6,7 @@
 import json
 import os
 from datetime import datetime, timedelta
+from typing import Optional
 from flask import jsonify, request
 from models.vehicle import VehicleInfo, VehicleStatus
 from models.flight import Flight
@@ -21,6 +22,18 @@ def _load_display():
     path = os.path.join(DATA_DIR, "airport_display.json")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _get_model_duration(brand_model: str) -> Optional[int]:
+    """从 vehicle_models.json 查询指定型号的基准作业时长（分钟）."""
+    path = os.path.join(DATA_DIR, "vehicle_models.json")
+    with open(path, "r", encoding="utf-8") as f:
+        catalog = json.load(f)
+    for entry in catalog:
+        for m in entry.get("models", []):
+            if m["brand_model"] == brand_model:
+                return m.get("base_duration_min")
+    return None
 
 
 def _build_gate_coords():
@@ -58,11 +71,12 @@ TASK_TYPE_NAMES = {
 
 @api_bp.route("/api/map-data")
 def map_data():
-    """返回态势图所需的全部数据（仅显示已入位航班）."""
+    """返回态势图所需的全部数据（仅显示已入位、未离场的航班）."""
     now = datetime.utcnow() + timedelta(hours=8)  # 北京时间
     flights = Flight.query.filter(
         Flight.arrival_at.isnot(None),
         Flight.arrival_at <= now,
+        Flight.status.in_(["SCHEDULED", "ARRIVED"]),
     ).order_by(Flight.scheduled_at).all()
 
     # 查询车辆：JOIN vehicle_info + vehicle_status
@@ -75,8 +89,9 @@ def map_data():
     ).all()
     vehicle_to_flight = {t.plate_number: t.flight_id for t in active_tasks}
 
-    # 航班→服务车辆映射
+    # 航班→服务车辆映射 + 任务完成统计
     flight_to_vehicles = {}
+    flight_task_stats = {}  # {flight_id: {done, total}}
     for t in active_tasks:
         if t.flight_id is None:
             continue
@@ -88,6 +103,16 @@ def map_data():
                 "type_icon": VEHICLE_TYPE_ICONS.get(vinfo.vehicle_type, ""),
                 "type": vinfo.vehicle_type,
             })
+
+    # 查询所有航班的任务完成情况（仅限当前显示的航班）
+    all_flight_ids = [f.id for f in flights]
+    if all_flight_ids:
+        all_tasks = Task.query.filter(Task.flight_id.in_(all_flight_ids)).all()
+        for t in all_tasks:
+            flight_task_stats.setdefault(t.flight_id, {"done": 0, "total": 0})
+            flight_task_stats[t.flight_id]["total"] += 1
+            if t.status == "COMPLETED":
+                flight_task_stats[t.flight_id]["done"] += 1
 
     flights_data = []
     for f in flights:
@@ -104,6 +129,8 @@ def map_data():
             "status": f.status,
             "position": pos,
             "assigned_vehicles": flight_to_vehicles.get(f.id, []),
+            "task_done": flight_task_stats.get(f.id, {}).get("done", 0),
+            "task_total": flight_task_stats.get(f.id, {}).get("total", 0),
         })
 
     _park_offsets = {}
@@ -172,6 +199,17 @@ def assign_task():
     task.plate_number = plate_number
     task.status = "IN_PROGRESS"
     vstat.current_status = "ASSIGNED"
+
+    # 计时起点 = max(当前时间, 航班入位时间)，飞机没到不开始计时
+    now = datetime.utcnow() + timedelta(hours=8)  # 北京时间
+    start = now
+    flight = task.flight
+    if flight and flight.arrival_at and flight.arrival_at > now:
+        start = flight.arrival_at  # 飞机还没到，等到了再计时
+    task.scheduled_start = start
+    duration = _get_model_duration(vinfo.brand_model) or 15
+    task.scheduled_end = start + timedelta(minutes=duration)
+
     db.session.commit()
 
     # 自动向车辆发送任务通知
@@ -343,7 +381,10 @@ def comm_history():
 
 @api_bp.route("/api/comm/unread")
 def comm_unread():
-    """获取调度中心未读消息数量（按车辆分组）."""
+    """获取调度中心未读消息数量（按车辆分组）.
+
+    🔧 v2: 返回 key 为 plate_number（车牌号），非 vstat.id
+    """
     from sqlalchemy import func
 
     rows = db.session.query(
@@ -361,7 +402,7 @@ def comm_unread():
         VehicleStatus, VehicleInfo.plate_number == VehicleStatus.plate_number
     ).all()
     for vinfo, vstat in vehicles:
-        result[vstat.id] = {
+        result[vinfo.plate_number] = {
             "plate_number": vinfo.plate_number,
             "type": vinfo.vehicle_type,
             "icon": VEHICLE_TYPE_ICONS.get(vinfo.vehicle_type, "\U0001f69b"),
@@ -396,3 +437,14 @@ def vehicle_active_task(plate_number):
             "scheduled_start": task.scheduled_start.strftime("%H:%M") if task.scheduled_start else None,
         },
     })
+
+
+@api_bp.route("/api/tick", methods=["POST"])
+def tick():
+    """手动触发一次状态推进周期（调试用）.
+
+    后台线程每 10 秒自动调用，此端点用于手动触发和调试。
+    """
+    from services.task_executor import TaskExecutor
+    result = TaskExecutor.run_cycle()
+    return jsonify({"ok": True, **result})

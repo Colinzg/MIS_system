@@ -9,6 +9,9 @@
 
 const MAP_W = 1000, MAP_H = 294;
 
+// 上一轮渲染的航班完整信息，用于检测离场航班
+var _prevFlightsMap = new Map();  // Map<id, flightObject>
+
 // 状态 → 颜色
 const STATUS_COLORS = {
   FLIGHT:  { SCHEDULED: '#3b82f6', ARRIVED: '#f59e0b', DEPARTED: '#22c55e', CANCELLED: '#ef4444' },
@@ -81,6 +84,21 @@ function renderAirportMap(containerId) {
   fetch('/api/map-data')
     .then(res => res.json())
     .then(data => {
+      // 检测离场航班：上一轮存在但本轮消失的 → 触发起飞弹窗
+      var currentIds = new Set((data.flights || []).map(function(f) { return f.id; }));
+      if (_prevFlightsMap.size > 0) {
+        _prevFlightsMap.forEach(function(flight, fid) {
+          if (!currentIds.has(fid)) {
+            showDeparturePopup(flight);
+          }
+        });
+      }
+      // 更新缓存：存储当前所有航班以便下一轮检测
+      _prevFlightsMap.clear();
+      (data.flights || []).forEach(function(f) {
+        _prevFlightsMap.set(f.id, f);
+      });
+
       // 停机位引导线 + 标签
       data.gates.forEach(g => {
         svg.append('line')
@@ -151,6 +169,17 @@ function renderAirportMap(containerId) {
         .attr('x', 0).attr('y', 30).attr('text-anchor', 'middle')
         .attr('fill', '#64748b').attr('font-size', 7)
         .text(d => d.aircraft_type || '');
+      // 全部任务完成后显示"待起飞"标签
+      fEnter.append('text')
+        .attr('x', 0).attr('y', 41).attr('text-anchor', 'middle')
+        .attr('font-size', 6.5).attr('font-weight', '600')
+        .attr('fill', '#22c55e')
+        .text(d => {
+          var done = d.task_done || 0;
+          var total = d.task_total || 0;
+          if (done > 0 && done === total) return '待起飞';
+          return '';
+        });
       // 服务车辆药丸标签
       var vColors = {'TOW': '#a855f7', 'GPU': '#f59e0b', 'STAIR': '#3b82f6', 'BUS': '#10b981', 'FUEL': '#eab308', 'BAG': '#22c55e', 'CLEAN': '#ef4444'};
       fEnter.each(function(d) {
@@ -180,4 +209,99 @@ function renderAirportMap(containerId) {
         .attr('fill', '#ef4444').attr('font-size', 16).text('Data load failed');
       console.error('Map data error:', err);
     });
+}
+
+/**
+ * 航班起飞弹窗 — CS:GO 风格居中卡片
+ * @param {Object|null} flight — 航班数据 {id, flight_no, airline, gate, aircraft_type, status}
+ */
+function showDeparturePopup(flight) {
+  var flightNo = (flight && flight.flight_no) || null;
+  var airline = (flight && flight.airline) || null;
+  var gateCode = (flight && flight.gate) || null;
+
+  // 构建 DOM
+  var backdrop = document.createElement('div');
+  backdrop.className = 'departure-popup-backdrop';
+
+  var card = document.createElement('div');
+  card.className = 'departure-popup-card';
+
+  // 飞机图标
+  var icon = document.createElement('span');
+  icon.className = 'departure-popup-icon';
+  icon.textContent = '🛫';
+
+  // 标题
+  var title = document.createElement('div');
+  title.className = 'departure-popup-title';
+  title.textContent = '航班已正常起飞';
+
+  // 航班号
+  var flightEl = document.createElement('div');
+  flightEl.className = 'departure-popup-flight';
+  flightEl.textContent = flightNo || '---';
+
+  // 辅助信息行
+  var info = document.createElement('div');
+  info.className = 'departure-popup-info';
+
+  if (airline) {
+    var airlineSpan = document.createElement('span');
+    airlineSpan.textContent = airline;
+    info.appendChild(airlineSpan);
+  }
+
+  if (gateCode) {
+    if (airline) {
+      var sep1 = document.createElement('span');
+      sep1.className = 'sep';
+      sep1.textContent = '·';
+      info.appendChild(sep1);
+    }
+    var gateTag = document.createElement('span');
+    gateTag.className = 'gate-tag';
+    gateTag.textContent = gateCode + ' 登机口';
+    info.appendChild(gateTag);
+  }
+
+  // 进度条
+  var progressTrack = document.createElement('div');
+  progressTrack.className = 'departure-popup-progress-track';
+  var progressBar = document.createElement('div');
+  progressBar.className = 'departure-popup-progress-bar';
+  progressTrack.appendChild(progressBar);
+
+  // 组装
+  card.appendChild(icon);
+  card.appendChild(title);
+  card.appendChild(flightEl);
+  card.appendChild(info);
+  card.appendChild(progressTrack);
+  backdrop.appendChild(card);
+  document.body.appendChild(backdrop);
+
+  // 点击任意位置提前关闭
+  backdrop.addEventListener('click', function() {
+    dismissPopup(backdrop, card);
+  });
+
+  // 自动移除（4 秒，等进度条跑完）
+  var autoTimer = setTimeout(function() {
+    dismissPopup(backdrop, card);
+  }, 6000);
+
+  // 将 timer 存到元素上，点击提前关闭时可以取消
+  backdrop._autoTimer = autoTimer;
+
+  function dismissPopup(bd, cd) {
+    if (bd._dismissed) return;
+    bd._dismissed = true;
+    if (bd._autoTimer) clearTimeout(bd._autoTimer);
+    cd.classList.add('removing');
+    bd.classList.add('removing');
+    setTimeout(function() {
+      bd.remove();
+    }, 400);
+  }
 }
